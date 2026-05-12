@@ -490,3 +490,102 @@ h3 {
   font-size: 1rem;
   margin: 0.25rem 0 0;
 }
+
+.leaflet-container img {
+  max-width: none;
+}
+
+.leaflet-container {
+  background: #dfead7;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.map-panel {
+  align-self: start;
+  display: grid;
+  gap: 1rem;
+}
+
+.map-panel-heading p {
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+}
+
+.library-list {
+  grid-template-columns: 1fr;
+}
+
+.library-item {
+  color: inherit;
+  display: block;
+  text-decoration: none;
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.library-item:hover,
+.library-item:focus-visible,
+.library-item.is-selected {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--forest-light);
+  outline: 0;
+  transform: translateY(-1px);
+}
+
+.library-detail-card {
+  background:
+    linear-gradient(145deg, rgba(255, 250, 241, 0.96), rgba(234, 216, 191, 0.72)),
+    radial-gradient(circle at top right, rgba(120, 132, 97, 0.2), transparent 12rem);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem;
+}
+
+.library-detail-card h3,
+.library-detail-card h4,
+.library-detail-card p {
+  margin: 0;
+}
+
+.library-detail-card p {
+  color: var(--muted);
+}
+
+.library-location {
+  color: var(--accent-dark) !important;
+  font-weight: 800;
+}
+
+.library-review-note {
+  background: rgba(255, 250, 241, 0.72);
+  border-left: 4px solid var(--sage);
+  border-radius: 14px;
+  padding: 0.85rem;
+}
+
+.custom-library-marker span {
+  font-size: 1.1rem;
+  height: 38px;
+  width: 38px;
+}
+
+.custom-library-marker span::after {
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid currentColor;
+  bottom: -8px;
+  color: inherit;
+  content: "";
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.custom-library-marker {
+  color: var(--accent-dark);
+}
+
+.custom-library-marker span {
+  position: relative;
+}
