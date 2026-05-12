@@ -93,14 +93,7 @@ const renderReviews = () => {
     .join("");
 };
 
-const libraryIcon = (status) =>
-  L.divIcon({
-    className: "custom-library-marker",
-    html: `<span style="background:${statusColors[status] || statusColors.Wishlist}">📚</span>`,
-    iconSize: [38, 38],
-    iconAnchor: [19, 38],
-    popupAnchor: [0, -36],
-  });
+const getStatusColor = (status) => statusColors[status] || statusColors.Wishlist;
 
 const renderLibraryDetail = (library) => {
   const libraryDetail = document.querySelector("#library-detail");
@@ -168,13 +161,69 @@ const renderMapUnavailable = (message) => {
   `;
 };
 
+const latitudeToMercator = (latitude) => {
+  const clampedLatitude = Math.max(Math.min(latitude, 85), -85);
+  const radians = (clampedLatitude * Math.PI) / 180;
+
+  return Math.log(Math.tan(Math.PI / 4 + radians / 2));
+};
+
+const getMapBounds = (libraries) => {
+  const coordinates = libraries.filter(hasValidCoordinates).map(getCoordinates);
+
+  if (!coordinates.length) {
+    const [centerLatitude, centerLongitude] = MASSACHUSETTS_CENTER;
+
+    return {
+      minLatitude: centerLatitude - 1,
+      maxLatitude: centerLatitude + 1,
+      minLongitude: centerLongitude - 1.4,
+      maxLongitude: centerLongitude + 1.4,
+    };
+  }
+
+  const latitudes = coordinates.map(([latitude]) => latitude);
+  const longitudes = coordinates.map(([, longitude]) => longitude);
+  const minLatitude = Math.min(...latitudes);
+  const maxLatitude = Math.max(...latitudes);
+  const minLongitude = Math.min(...longitudes);
+  const maxLongitude = Math.max(...longitudes);
+  const latitudeRange = Math.max(maxLatitude - minLatitude, 0.7);
+  const longitudeRange = Math.max(maxLongitude - minLongitude, 0.9);
+  const latitudePadding = latitudeRange * 0.32;
+  const longitudePadding = longitudeRange * 0.32;
+
+  return {
+    minLatitude: minLatitude - latitudePadding,
+    maxLatitude: maxLatitude + latitudePadding,
+    minLongitude: minLongitude - longitudePadding,
+    maxLongitude: maxLongitude + longitudePadding,
+  };
+};
+
+const getMapPosition = (library, bounds) => {
+  const [latitude, longitude] = getCoordinates(library);
+  const minMercator = latitudeToMercator(bounds.minLatitude);
+  const maxMercator = latitudeToMercator(bounds.maxLatitude);
+  const libraryMercator = latitudeToMercator(latitude);
+  const x = ((longitude - bounds.minLongitude) / (bounds.maxLongitude - bounds.minLongitude)) * 100;
+  const y = (1 - (libraryMercator - minMercator) / (maxMercator - minMercator)) * 100;
+
+  return {
+    x: Math.max(5, Math.min(95, x)),
+    y: Math.max(7, Math.min(93, y)),
+  };
+};
+
 const initializeMap = (libraries) => {
   const mapElement = document.querySelector("#library-map");
   const initialSlug = window.location.hash.startsWith("#library-")
     ? window.location.hash.replace("#library-", "")
     : libraries[0].slug;
+  const mappedLibraries = libraries.filter(hasValidCoordinates);
+  const bounds = getMapBounds(libraries);
 
-  if (!window.L) {
+  if (!mappedLibraries.length) {
     const selectLibraryWithoutMap = (slug) => {
       const library = libraries.find((item) => item.slug === slug) || libraries[0];
 
@@ -182,7 +231,7 @@ const initializeMap = (libraries) => {
       renderLibraryDetail(library);
     };
 
-    renderMapUnavailable("The map library could not load. The library list is still available on the right.");
+    renderMapUnavailable("Add latitude and longitude values to data/libraries.json to place pins on the map.");
     selectLibraryWithoutMap(initialSlug);
 
     document.querySelector("#library-list").addEventListener("click", (event) => {
@@ -198,85 +247,60 @@ const initializeMap = (libraries) => {
     return;
   }
 
-  const map = L.map(mapElement, {
-    center: MASSACHUSETTS_CENTER,
-    scrollWheelZoom: false,
-    zoom: MASSACHUSETTS_DEFAULT_ZOOM,
-    zoomControl: true,
+  mapElement.innerHTML = `
+    <div class="simple-map" aria-hidden="true">
+      <span class="simple-map-label simple-map-label-north">N</span>
+      <span class="simple-map-label simple-map-label-south">S</span>
+      <span class="simple-map-label simple-map-label-west">W</span>
+      <span class="simple-map-label simple-map-label-east">E</span>
+      <div class="simple-map-river"></div>
+      <div class="simple-map-road simple-map-road-one"></div>
+      <div class="simple-map-road simple-map-road-two"></div>
+      <div class="simple-map-region simple-map-region-one"></div>
+      <div class="simple-map-region simple-map-region-two"></div>
+      <div class="simple-map-region simple-map-region-three"></div>
+    </div>
+    <div class="map-marker-layer"></div>
+  `;
+
+  const markerLayer = mapElement.querySelector(".map-marker-layer");
+
+  mappedLibraries.forEach((library) => {
+    const marker = document.createElement("button");
+    const { x, y } = getMapPosition(library, bounds);
+
+    marker.className = "custom-library-marker";
+    marker.type = "button";
+    marker.dataset.librarySlug = library.slug;
+    marker.style.left = `${x}%`;
+    marker.style.top = `${y}%`;
+    marker.style.setProperty("--marker-color", getStatusColor(library.status));
+    marker.setAttribute("aria-label", `${library.name} in ${library.location || "a saved location"}`);
+    marker.innerHTML = '<span aria-hidden="true">📚</span>';
+    markerLayer.appendChild(marker);
   });
-  const bounds = [];
-  const markers = new Map();
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    detectRetina: true,
-  }).addTo(map);
-
-  const selectLibrary = (slug, options = {}) => {
+  const selectLibrary = (slug) => {
     const library = libraries.find((item) => item.slug === slug) || libraries[0];
-    const marker = markers.get(library.slug);
 
     renderLibraryList(libraries, library.slug);
     renderLibraryDetail(library);
 
-    if (marker) {
-      marker.openPopup();
-      if (options.pan !== false) {
-        map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 11), { duration: 0.45 });
-      }
-    }
+    markerLayer.querySelectorAll(".custom-library-marker").forEach((marker) => {
+      marker.classList.toggle("is-selected", marker.dataset.librarySlug === library.slug);
+    });
   };
 
-  libraries.filter(hasValidCoordinates).forEach((library) => {
-    const coordinates = getCoordinates(library);
-    bounds.push(coordinates);
+  markerLayer.addEventListener("click", (event) => {
+    const marker = event.target.closest("[data-library-slug]");
 
-    const marker = L.marker(coordinates, {
-      icon: libraryIcon(library.status),
-      title: library.name,
-    })
-      .addTo(map)
-      .bindPopup(
-        `<strong>${escapeHtml(library.name)}</strong><br>${escapeHtml(library.location || "")}` +
-          `<br><a href="${escapeHtml(getLibraryUrl(library))}">Open library page</a>`,
-      );
-
-    marker.on("click", () => {
-      window.location.hash = libraryHash(library);
-      selectLibrary(library.slug, { pan: false });
-    });
-
-    markers.set(library.slug, marker);
-  });
-
-  const focusMap = () => {
-    map.invalidateSize();
-
-    if (bounds.length > 1) {
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    if (!marker) {
       return;
     }
 
-    if (bounds.length === 1) {
-      map.setView(bounds[0], Math.max(map.getZoom(), 12));
-      return;
-    }
-
-    map.setView(MASSACHUSETTS_CENTER, MASSACHUSETTS_DEFAULT_ZOOM);
-  };
-
-  requestAnimationFrame(() => {
-    focusMap();
-    setTimeout(focusMap, 250);
-    setTimeout(focusMap, 750);
+    window.location.hash = marker.dataset.librarySlug ? `library-${marker.dataset.librarySlug}` : "libraries";
+    selectLibrary(marker.dataset.librarySlug);
   });
-
-  if ("ResizeObserver" in window) {
-    const resizeObserver = new ResizeObserver(() => {
-      map.invalidateSize();
-    });
-    resizeObserver.observe(mapElement);
-  }
 
   document.querySelector("#library-list").addEventListener("click", (event) => {
     const libraryLink = event.target.closest("[data-library-slug]");
@@ -297,7 +321,7 @@ const initializeMap = (libraries) => {
     selectLibrary(slug);
   });
 
-  selectLibrary(initialSlug, { pan: false });
+  selectLibrary(initialSlug);
 };
 
 const normalizeLibraries = (libraries) =>
