@@ -65,9 +65,9 @@ const renderReviews = () => {
 
 const libraryIcon = (status) => {
   const colors = {
-    Visited: "#6f8c6f",
-    Reviewed: "#b65b3a",
-    Wishlist: "#e8b75f",
+    Visited: "#788461",
+    Reviewed: "#9f5637",
+    Wishlist: "#c49649",
   };
 
   return L.divIcon({
