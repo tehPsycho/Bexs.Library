@@ -492,30 +492,10 @@ h3 {
   }
 }
 
-.custom-library-marker span {
-  align-items: center;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 8px 18px rgba(45, 33, 24, 0.25);
-  display: flex;
-  height: 36px;
-  justify-content: center;
-  width: 36px;
-}
 
 .library-item h4 {
   font-size: 1rem;
   margin: 0.25rem 0 0;
-}
-
-.leaflet-container img {
-  max-height: none !important;
-  max-width: none !important;
-}
-
-.leaflet-container {
-  background: #dfead7;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .map-unavailable {
@@ -600,29 +580,160 @@ h3 {
   border-radius: 14px;
   padding: 0.85rem;
 }
-
-.custom-library-marker span {
-  font-size: 1.1rem;
-  height: 38px;
-  width: 38px;
+.simple-map,
+.map-marker-layer {
+  inset: 0;
+  position: absolute;
 }
 
-.custom-library-marker span::after {
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 10px solid currentColor;
-  bottom: -8px;
-  color: inherit;
+.simple-map {
+  background:
+    linear-gradient(135deg, rgba(223, 234, 215, 0.96), rgba(242, 232, 214, 0.9)),
+    radial-gradient(circle at 18% 22%, rgba(120, 132, 97, 0.28), transparent 14rem),
+    radial-gradient(circle at 78% 70%, rgba(196, 150, 73, 0.18), transparent 18rem);
+  overflow: hidden;
+}
+
+.simple-map::before {
+  background-image:
+    linear-gradient(rgba(120, 132, 97, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 132, 97, 0.18) 1px, transparent 1px);
+  background-size: 5rem 5rem;
   content: "";
-  left: 50%;
+  inset: -1rem;
+  opacity: 0.5;
   position: absolute;
+}
+
+.simple-map-label {
+  color: rgba(92, 47, 31, 0.48);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  position: absolute;
+  z-index: 1;
+}
+
+.simple-map-label-north {
+  left: 50%;
+  top: 1rem;
   transform: translateX(-50%);
 }
 
+.simple-map-label-south {
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.simple-map-label-west {
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.simple-map-label-east {
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.simple-map-river,
+.simple-map-road,
+.simple-map-region {
+  position: absolute;
+}
+
+.simple-map-river {
+  background: rgba(126, 190, 205, 0.55);
+  border-radius: 999px;
+  height: 18%;
+  right: -8%;
+  top: 8%;
+  transform: rotate(-18deg);
+  width: 46%;
+}
+
+.simple-map-road {
+  background: rgba(255, 250, 241, 0.64);
+  border: 1px solid rgba(214, 190, 160, 0.62);
+  border-radius: 999px;
+  box-shadow: 0 1px 0 rgba(92, 47, 31, 0.08);
+  height: 0.55rem;
+  transform-origin: center;
+}
+
+.simple-map-road-one {
+  left: 2%;
+  top: 44%;
+  transform: rotate(-12deg);
+  width: 98%;
+}
+
+.simple-map-road-two {
+  left: 20%;
+  top: 16%;
+  transform: rotate(64deg);
+  width: 90%;
+}
+
+.simple-map-region {
+  background: rgba(47, 105, 87, 0.14);
+  border-radius: 28px;
+}
+
+.simple-map-region-one {
+  height: 24%;
+  left: 8%;
+  top: 12%;
+  width: 22%;
+}
+
+.simple-map-region-two {
+  bottom: 9%;
+  height: 30%;
+  right: 13%;
+  width: 28%;
+}
+
+.simple-map-region-three {
+  bottom: 18%;
+  height: 18%;
+  left: 27%;
+  width: 18%;
+}
+
+.map-marker-layer {
+  z-index: 2;
+}
+
 .custom-library-marker {
+  align-items: center;
+  background: var(--marker-color, var(--gold));
+  border: 3px solid #fffaf1;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 10px 22px rgba(45, 33, 24, 0.28);
   color: var(--accent-dark);
+  cursor: pointer;
+  display: flex;
+  font-size: 1.1rem;
+  height: 2.6rem;
+  justify-content: center;
+  position: absolute;
+  transform: translate(-50%, -100%) rotate(-45deg);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+  width: 2.6rem;
 }
 
 .custom-library-marker span {
-  position: relative;
+  transform: rotate(45deg);
+}
+
+.custom-library-marker:hover,
+.custom-library-marker:focus-visible,
+.custom-library-marker.is-selected {
+  box-shadow: 0 14px 30px rgba(45, 33, 24, 0.35), 0 0 0 5px rgba(255, 250, 241, 0.72);
+  outline: 0;
+  transform: translate(-50%, -100%) rotate(-45deg) scale(1.12);
+  z-index: 3;
 }
