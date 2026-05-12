@@ -114,15 +114,20 @@
           <p class="eyebrow">Little Free Library map</p>
           <h2 id="libraries-title">Visited & reviewed libraries</h2>
           <p>
-            Pins load from <code>data/libraries.json</code>. Mark each stop as visited, reviewed, or
-            on the wishlist and link it to a review or TikTok.
+            A simpler interactive map for Little Free Library stops. Tap a marker to open that
+            library's mini page with visit notes, review text, and a review or video link.
           </p>
         </div>
         <div class="map-layout">
           <div id="library-map" class="library-map" role="application" aria-label="Map of Little Free Libraries"></div>
           <div class="map-panel">
-            <h3>Library stops</h3>
-            <div class="library-list" id="library-list"></div>
+            <div class="map-panel-heading">
+              <p class="eyebrow">Map guide</p>
+              <h3>Library stops</h3>
+              <p>Choose a marker or card to view that library's page/review notes.</p>
+            </div>
+            <div class="library-list" id="library-list" aria-label="Little Free Library list"></div>
+            <div id="library-detail" class="library-detail" aria-live="polite"></div>
           </div>
         </div>
       </section>

@@ -31,13 +31,40 @@ const reviews = [
 const fallbackLibraries = [
   {
     name: "Example Neighborhood Library",
+    slug: "example-neighborhood-library",
     status: "Wishlist",
     latitude: 39.8283,
     longitude: -98.5795,
+    location: "United States",
     note: "Replace with a real Little Free Library location you plan to visit.",
+    reviewTitle: "Planning notes",
+    review: "Add what you hope to find, nearby stops, and the review link after your visit.",
     reviewUrl: "#reviews",
   },
 ];
+
+const statusColors = {
+  Visited: "#788461",
+  Reviewed: "#9f5637",
+  Wishlist: "#c49649",
+};
+
+const escapeHtml = (value = "") =>
+  String(value).replace(/[&<>'"]/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "'": "&#39;",
+      '"': "&quot;",
+    };
+
+    return entities[character];
+  });
+
+const libraryHash = (library) => `library-${library.slug}`;
+
+const getLibraryUrl = (library) => `#${libraryHash(library)}`;
 
 const renderReviews = () => {
   const reviewGrid = document.querySelector("#review-grid");
@@ -46,16 +73,16 @@ const renderReviews = () => {
     .map(
       (review) => `
         <article class="review-card">
-          <div class="review-cover" aria-hidden="true">${review.title.charAt(0)}</div>
+          <div class="review-cover" aria-hidden="true">${escapeHtml(review.title.charAt(0))}</div>
           <div>
-            <p class="review-meta">${review.tag}</p>
-            <h3>${review.title}</h3>
-            <p>${review.author}</p>
+            <p class="review-meta">${escapeHtml(review.tag)}</p>
+            <h3>${escapeHtml(review.title)}</h3>
+            <p>${escapeHtml(review.author)}</p>
           </div>
-          <p>${review.summary}</p>
-          <span class="rating">${review.rating}</span>
+          <p>${escapeHtml(review.summary)}</p>
+          <span class="rating">${escapeHtml(review.rating)}</span>
           <div class="review-actions">
-            <a class="button button-secondary" href="${review.link}">Open link</a>
+            <a class="button button-secondary" href="${escapeHtml(review.link)}">Open link</a>
           </div>
         </article>
       `,
@@ -63,65 +90,146 @@ const renderReviews = () => {
     .join("");
 };
 
-const libraryIcon = (status) => {
-  const colors = {
-    Visited: "#788461",
-    Reviewed: "#9f5637",
-    Wishlist: "#c49649",
-  };
-
-  return L.divIcon({
+const libraryIcon = (status) =>
+  L.divIcon({
     className: "custom-library-marker",
-    html: `<span style="background:${colors[status] || colors.Wishlist}">📚</span>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-    popupAnchor: [0, -18],
+    html: `<span style="background:${statusColors[status] || statusColors.Wishlist}">📚</span>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 38],
+    popupAnchor: [0, -36],
   });
+
+const renderLibraryDetail = (library) => {
+  const libraryDetail = document.querySelector("#library-detail");
+  const reviewUrl = library.reviewUrl || getLibraryUrl(library);
+
+  libraryDetail.innerHTML = `
+    <article class="library-detail-card">
+      <p class="library-status">${escapeHtml(library.status)}</p>
+      <h3>${escapeHtml(library.name)}</h3>
+      <p class="library-location">${escapeHtml(library.location || "Location coming soon")}</p>
+      <p>${escapeHtml(library.note)}</p>
+      <div class="library-review-note">
+        <h4>${escapeHtml(library.reviewTitle || "Review notes")}</h4>
+        <p>${escapeHtml(library.review || "Add the review, TikTok recap, or book haul note here.")}</p>
+      </div>
+      <a class="button button-secondary" href="${escapeHtml(reviewUrl)}">Open review or page</a>
+    </article>
+  `;
 };
 
-const renderLibraryList = (libraries) => {
+const renderLibraryList = (libraries, selectedSlug) => {
   const libraryList = document.querySelector("#library-list");
 
   libraryList.innerHTML = libraries
-    .map(
-      (library) => `
-        <article class="library-item">
-          <span class="library-status">${library.status}</span>
-          <h4>${library.name}</h4>
-          <p>${library.note}</p>
-          <p><a href="${library.reviewUrl}">Review or video</a></p>
-        </article>
-      `,
-    )
+    .map((library) => {
+      const isSelected = library.slug === selectedSlug;
+
+      return `
+        <a class="library-item${isSelected ? " is-selected" : ""}" href="${escapeHtml(getLibraryUrl(library))}" data-library-slug="${escapeHtml(library.slug)}">
+          <span class="library-status">${escapeHtml(library.status)}</span>
+          <h4>${escapeHtml(library.name)}</h4>
+          <p>${escapeHtml(library.location || "Location coming soon")}</p>
+        </a>
+      `;
+    })
     .join("");
 };
 
 const initializeMap = (libraries) => {
-  const map = L.map("library-map", { scrollWheelZoom: false });
+  const map = L.map("library-map", {
+    scrollWheelZoom: false,
+    zoomControl: true,
+  });
   const bounds = [];
+  const markers = new Map();
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
 
+  const selectLibrary = (slug, options = {}) => {
+    const library = libraries.find((item) => item.slug === slug) || libraries[0];
+    const marker = markers.get(library.slug);
+
+    renderLibraryList(libraries, library.slug);
+    renderLibraryDetail(library);
+
+    if (marker) {
+      marker.openPopup();
+      if (options.pan !== false) {
+        map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 11), { duration: 0.45 });
+      }
+    }
+  };
+
   libraries.forEach((library) => {
     const coordinates = [library.latitude, library.longitude];
     bounds.push(coordinates);
 
-    L.marker(coordinates, { icon: libraryIcon(library.status) })
+    const marker = L.marker(coordinates, {
+      icon: libraryIcon(library.status),
+      title: library.name,
+    })
       .addTo(map)
       .bindPopup(
-        `<strong>${library.name}</strong><br>${library.status}<br>${library.note}<br><a href="${library.reviewUrl}">Open review</a>`,
+        `<strong>${escapeHtml(library.name)}</strong><br>${escapeHtml(library.location || "")}` +
+          `<br><a href="${escapeHtml(getLibraryUrl(library))}">Open library page</a>`,
       );
+
+    marker.on("click", () => {
+      window.location.hash = libraryHash(library);
+      selectLibrary(library.slug, { pan: false });
+    });
+
+    markers.set(library.slug, marker);
   });
 
   if (bounds.length > 1) {
-    map.fitBounds(bounds, { padding: [40, 40] });
-    return;
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+  } else {
+    map.setView(bounds[0], 5);
   }
 
-  map.setView(bounds[0], 4);
+  setTimeout(() => map.invalidateSize(), 0);
+
+  document.querySelector("#library-list").addEventListener("click", (event) => {
+    const libraryLink = event.target.closest("[data-library-slug]");
+
+    if (!libraryLink) {
+      return;
+    }
+
+    selectLibrary(libraryLink.dataset.librarySlug);
+  });
+
+  window.addEventListener("hashchange", () => {
+    if (!window.location.hash.startsWith("#library-")) {
+      return;
+    }
+
+    const slug = window.location.hash.replace("#library-", "");
+    selectLibrary(slug);
+  });
+
+  const initialSlug = window.location.hash.startsWith("#library-")
+    ? window.location.hash.replace("#library-", "")
+    : libraries[0].slug;
+
+  selectLibrary(initialSlug, { pan: false });
 };
+
+const normalizeLibraries = (libraries) =>
+  libraries.map((library, index) => ({
+    slug:
+      library.slug ||
+      library.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") ||
+      `library-${index + 1}`,
+    ...library,
+  }));
 
 const loadLibraries = async () => {
   try {
@@ -129,10 +237,12 @@ const loadLibraries = async () => {
     if (!response.ok) {
       throw new Error("Unable to load library map data");
     }
-    return response.json();
+    const libraries = await response.json();
+
+    return normalizeLibraries(libraries);
   } catch (error) {
     console.warn(error);
-    return fallbackLibraries;
+    return normalizeLibraries(fallbackLibraries);
   }
 };
 
@@ -152,7 +262,7 @@ const initializeSite = async () => {
   renderReviews();
 
   const libraries = await loadLibraries();
-  renderLibraryList(libraries);
+  renderLibraryList(libraries, libraries[0].slug);
   initializeMap(libraries);
 };
 
