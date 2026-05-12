@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Example Neighborhood Library",
+    "status": "Wishlist",
+    "latitude": 39.8283,
+    "longitude": -98.5795,
+    "note": "Replace this placeholder with a real Little Free Library you want to visit.",
+    "reviewUrl": "#reviews"
+  },
+  {
+    "name": "Visited Library Template",
+    "status": "Visited",
+    "latitude": 39.0997,
+    "longitude": -94.5786,
+    "note": "Use visited when you have stopped by but have not posted the full review yet.",
+    "reviewUrl": "https://www.tiktok.com/@bexs.library"
+  },
+  {
+    "name": "Reviewed Library Template",
+    "status": "Reviewed",
+    "latitude": 38.627,
+    "longitude": -90.1994,
+    "note": "Use reviewed after you add a review, TikTok, or book haul note.",
+    "reviewUrl": "#reviews"
+  }
+]
