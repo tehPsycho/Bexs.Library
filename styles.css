@@ -369,21 +369,30 @@ h3 {
 }
 
 .map-layout {
+  align-items: start;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 1.25rem;
+  grid-template-columns: minmax(30rem, 1fr) minmax(20rem, 24rem);
 }
 
 .library-map {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  display: block;
+  height: clamp(34rem, 72vh, 46rem);
   min-height: 34rem;
   overflow: hidden;
+  position: sticky;
+  top: 1.25rem;
+  width: 100%;
+  z-index: 1;
 }
 
 .map-panel {
   border-radius: var(--radius);
+  max-height: clamp(34rem, 72vh, 46rem);
+  overflow: auto;
   padding: 1.25rem;
 }
 
@@ -466,7 +475,15 @@ h3 {
   }
 
   .library-map {
+    height: 28rem;
     min-height: 26rem;
+    position: relative;
+    top: auto;
+  }
+
+  .map-panel {
+    max-height: none;
+    overflow: visible;
   }
 
   .site-footer {
@@ -499,6 +516,25 @@ h3 {
 .leaflet-container {
   background: #dfead7;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.map-unavailable {
+  align-content: center;
+  background:
+    linear-gradient(135deg, rgba(223, 234, 215, 0.92), rgba(255, 250, 241, 0.86)),
+    radial-gradient(circle at top right, rgba(47, 105, 87, 0.18), transparent 18rem);
+  color: var(--accent-dark);
+  display: grid;
+  height: 100%;
+  justify-items: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.map-unavailable p {
+  color: var(--muted);
+  margin: 0.5rem 0 0;
+  max-width: 32rem;
 }
 
 .map-panel {

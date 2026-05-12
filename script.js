@@ -139,13 +139,65 @@ const renderLibraryList = (libraries, selectedSlug) => {
     .join("");
 };
 
-const hasValidCoordinates = (library) =>
-  Number.isFinite(library.latitude) && Number.isFinite(library.longitude);
+const getCoordinateValue = (value) => {
+  if (value === null || value === undefined || String(value).trim() === "") {
+    return null;
+  }
 
-const getCoordinates = (library) => [library.latitude, library.longitude];
+  const coordinate = Number(value);
+
+  return Number.isFinite(coordinate) ? coordinate : null;
+};
+
+const hasValidCoordinates = (library) =>
+  getCoordinateValue(library.latitude) !== null && getCoordinateValue(library.longitude) !== null;
+
+const getCoordinates = (library) => [
+  getCoordinateValue(library.latitude),
+  getCoordinateValue(library.longitude),
+];
+
+const renderMapUnavailable = (message) => {
+  const mapElement = document.querySelector("#library-map");
+
+  mapElement.innerHTML = `
+    <div class="map-unavailable">
+      <strong>Map unavailable</strong>
+      <p>${escapeHtml(message)}</p>
+    </div>
+  `;
+};
 
 const initializeMap = (libraries) => {
   const mapElement = document.querySelector("#library-map");
+  const initialSlug = window.location.hash.startsWith("#library-")
+    ? window.location.hash.replace("#library-", "")
+    : libraries[0].slug;
+
+  if (!window.L) {
+    const selectLibraryWithoutMap = (slug) => {
+      const library = libraries.find((item) => item.slug === slug) || libraries[0];
+
+      renderLibraryList(libraries, library.slug);
+      renderLibraryDetail(library);
+    };
+
+    renderMapUnavailable("The map library could not load. The library list is still available on the right.");
+    selectLibraryWithoutMap(initialSlug);
+
+    document.querySelector("#library-list").addEventListener("click", (event) => {
+      const libraryLink = event.target.closest("[data-library-slug]");
+
+      if (!libraryLink) {
+        return;
+      }
+
+      selectLibraryWithoutMap(libraryLink.dataset.librarySlug);
+    });
+
+    return;
+  }
+
   const map = L.map(mapElement, {
     center: MASSACHUSETTS_CENTER,
     scrollWheelZoom: false,
@@ -216,6 +268,7 @@ const initializeMap = (libraries) => {
   requestAnimationFrame(() => {
     focusMap();
     setTimeout(focusMap, 250);
+    setTimeout(focusMap, 750);
   });
 
   if ("ResizeObserver" in window) {
@@ -244,24 +297,27 @@ const initializeMap = (libraries) => {
     selectLibrary(slug);
   });
 
-  const initialSlug = window.location.hash.startsWith("#library-")
-    ? window.location.hash.replace("#library-", "")
-    : libraries[0].slug;
-
   selectLibrary(initialSlug, { pan: false });
 };
 
 const normalizeLibraries = (libraries) =>
-  libraries.map((library, index) => ({
-    slug:
-      library.slug ||
-      library.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") ||
-      `library-${index + 1}`,
-    ...library,
-  }));
+  libraries.map((library, index) => {
+    const latitude = getCoordinateValue(library.latitude);
+    const longitude = getCoordinateValue(library.longitude);
+
+    return {
+      ...library,
+      latitude: latitude ?? library.latitude,
+      longitude: longitude ?? library.longitude,
+      slug:
+        library.slug ||
+        library.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "") ||
+        `library-${index + 1}`,
+    };
+  });
 
 const loadLibraries = async () => {
   try {
