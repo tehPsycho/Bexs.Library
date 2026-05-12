@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Bex's Library shares cozy book reviews, Little Free Library visits, and links to TikTok, Etsy, and bookish finds."
+    />
+    <title>Bex's Library | Book Reviews & Little Free Library Adventures</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIINfQ4u3Q22Y4FokHsdY7uw6nGQUwM8YkM="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="top">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="brand" href="#top" aria-label="Bex's Library home">
+          <span class="brand-mark" aria-hidden="true">📚</span>
+          <span>Bex's Library</span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+          Menu
+        </button>
+        <div class="nav-links" id="nav-links">
+          <a href="#links">Links</a>
+          <a href="#reviews">Reviews</a>
+          <a href="#libraries">Little Free Libraries</a>
+          <a href="#comments">Comments</a>
+        </div>
+      </nav>
+
+      <section class="hero section-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Bookish adventures, tiny libraries, cozy reviews</p>
+          <h1>Follow along as Bex reads, reviews, and visits Little Free Libraries.</h1>
+          <p class="hero-text">
+            A companion home for the Bex's Library TikTok: quick access to shop links,
+            favorite reads, Amazon referral picks, and a growing map of Little Free Library stops.
+          </p>
+          <div class="hero-actions" aria-label="Featured links">
+            <a class="button button-primary" href="https://www.tiktok.com/@bexs.library">Visit TikTok</a>
+            <a class="button button-secondary" href="#reviews">Read reviews</a>
+          </div>
+        </div>
+        <aside class="feature-card" aria-label="Current reading spotlight">
+          <p class="feature-label">Now building</p>
+          <h2>Your book review hub</h2>
+          <p>
+            Add every review once, then connect it to TikTok videos, Etsy listings, referral links,
+            and library map pins.
+          </p>
+        </aside>
+      </section>
+    </header>
+
+    <main>
+      <section class="section section-grid" id="links" aria-labelledby="links-title">
+        <div>
+          <p class="eyebrow">Find Bex's Library elsewhere</p>
+          <h2 id="links-title">Quick links</h2>
+          <p>
+            Swap in your Etsy shop and Amazon affiliate URLs when they are ready. The TikTok link is
+            already connected.
+          </p>
+        </div>
+        <div class="link-card-grid">
+          <a class="link-card" href="https://www.tiktok.com/@bexs.library">
+            <span class="link-icon" aria-hidden="true">🎬</span>
+            <strong>TikTok</strong>
+            <span>@bexs.library</span>
+          </a>
+          <a class="link-card" href="#" aria-label="Etsy shop link placeholder">
+            <span class="link-icon" aria-hidden="true">🛍️</span>
+            <strong>Etsy</strong>
+            <span>Add your shop URL</span>
+          </a>
+          <a class="link-card" href="#" aria-label="Amazon referrals link placeholder">
+            <span class="link-icon" aria-hidden="true">✨</span>
+            <strong>Amazon favorites</strong>
+            <span>Add affiliate/referral link</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="section reviews-section" id="reviews" aria-labelledby="reviews-title">
+        <div class="section-heading">
+          <p class="eyebrow">Reviews</p>
+          <h2 id="reviews-title">Latest book notes</h2>
+          <p>
+            Start with these sample cards, then edit the review data in <code>script.js</code> as you
+            publish full reviews and TikToks.
+          </p>
+        </div>
+        <div class="review-grid" id="review-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="section map-section" id="libraries" aria-labelledby="libraries-title">
+        <div class="section-heading">
+          <p class="eyebrow">Little Free Library map</p>
+          <h2 id="libraries-title">Visited & reviewed libraries</h2>
+          <p>
+            Pins load from <code>data/libraries.json</code>. Mark each stop as visited, reviewed, or
+            on the wishlist and link it to a review or TikTok.
+          </p>
+        </div>
+        <div class="map-layout">
+          <div id="library-map" class="library-map" role="application" aria-label="Map of Little Free Libraries"></div>
+          <div class="map-panel">
+            <h3>Library stops</h3>
+            <div class="library-list" id="library-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section comments-section" id="comments" aria-labelledby="comments-title">
+        <div class="section-heading">
+          <p class="eyebrow">Community</p>
+          <h2 id="comments-title">Reader comments</h2>
+          <p>
+            GitHub Pages is static, so comments need a hosted service. This section is ready for
+            Giscus, which stores comments in GitHub Discussions, or another embed like Disqus.
+          </p>
+        </div>
+        <div class="comments-placeholder">
+          <h3>Enable comments later</h3>
+          <p>
+            Replace this card with your Giscus script after enabling Discussions for the repository.
+            Until then, invite readers to comment on TikTok.
+          </p>
+          <a class="button button-secondary" href="https://giscus.app/">Configure Giscus</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© <span id="year"></span> Bex's Library. Built for GitHub Pages.</p>
+      <a href="#top">Back to top ↑</a>
+    </footer>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="script.js"></script>
+  </body>
+</html>
