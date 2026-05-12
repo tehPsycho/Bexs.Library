@@ -28,15 +28,18 @@ const reviews = [
   },
 ];
 
+const MASSACHUSETTS_CENTER = [42.4072, -71.3824];
+const MASSACHUSETTS_DEFAULT_ZOOM = 8;
+
 const fallbackLibraries = [
   {
     name: "Example Neighborhood Library",
     slug: "example-neighborhood-library",
     status: "Wishlist",
-    latitude: 39.8283,
-    longitude: -98.5795,
-    location: "United States",
-    note: "Replace with a real Little Free Library location you plan to visit.",
+    latitude: 42.3601,
+    longitude: -71.0589,
+    location: "Boston, Massachusetts",
+    note: "Replace with a real Little Free Library location you plan to visit in Massachusetts.",
     reviewTitle: "Planning notes",
     review: "Add what you hope to find, nearby stops, and the review link after your visit.",
     reviewUrl: "#reviews",
@@ -136,9 +139,17 @@ const renderLibraryList = (libraries, selectedSlug) => {
     .join("");
 };
 
+const hasValidCoordinates = (library) =>
+  Number.isFinite(library.latitude) && Number.isFinite(library.longitude);
+
+const getCoordinates = (library) => [library.latitude, library.longitude];
+
 const initializeMap = (libraries) => {
-  const map = L.map("library-map", {
+  const mapElement = document.querySelector("#library-map");
+  const map = L.map(mapElement, {
+    center: MASSACHUSETTS_CENTER,
     scrollWheelZoom: false,
+    zoom: MASSACHUSETTS_DEFAULT_ZOOM,
     zoomControl: true,
   });
   const bounds = [];
@@ -146,6 +157,7 @@ const initializeMap = (libraries) => {
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    detectRetina: true,
   }).addTo(map);
 
   const selectLibrary = (slug, options = {}) => {
@@ -163,8 +175,8 @@ const initializeMap = (libraries) => {
     }
   };
 
-  libraries.forEach((library) => {
-    const coordinates = [library.latitude, library.longitude];
+  libraries.filter(hasValidCoordinates).forEach((library) => {
+    const coordinates = getCoordinates(library);
     bounds.push(coordinates);
 
     const marker = L.marker(coordinates, {
@@ -185,13 +197,33 @@ const initializeMap = (libraries) => {
     markers.set(library.slug, marker);
   });
 
-  if (bounds.length > 1) {
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-  } else {
-    map.setView(bounds[0], 5);
-  }
+  const focusMap = () => {
+    map.invalidateSize();
 
-  setTimeout(() => map.invalidateSize(), 0);
+    if (bounds.length > 1) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+      return;
+    }
+
+    if (bounds.length === 1) {
+      map.setView(bounds[0], Math.max(map.getZoom(), 12));
+      return;
+    }
+
+    map.setView(MASSACHUSETTS_CENTER, MASSACHUSETTS_DEFAULT_ZOOM);
+  };
+
+  requestAnimationFrame(() => {
+    focusMap();
+    setTimeout(focusMap, 250);
+  });
+
+  if ("ResizeObserver" in window) {
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(mapElement);
+  }
 
   document.querySelector("#library-list").addEventListener("click", (event) => {
     const libraryLink = event.target.closest("[data-library-slug]");
