@@ -4,7 +4,7 @@ A static GitHub Pages companion site for [@bexs.library on TikTok](https://www.t
 
 ## What is included
 
-- An earth-toned, bookish landing page with cross-links for TikTok, Etsy, and Amazon favorites.
+- An earth-toned, bookish landing page with cross-links for TikTok, Etsy, Goodreads, The StoryGraph, and Amazon favorites.
 - A starter book reviews section that can be edited in `script.js`.
 - A Leaflet + OpenStreetMap Little Free Library map powered by `data/libraries.json`.
 - A comments placeholder for a static-site-friendly service such as [Giscus](https://giscus.app/).
@@ -13,7 +13,7 @@ A static GitHub Pages companion site for [@bexs.library on TikTok](https://www.t
 
 ### Update social and shop links
 
-Edit `index.html` to update quick links. The Etsy card currently points to `https://www.etsy.com/shop/threeheartsbeading`, and the Amazon favorites card is intentionally labeled “Coming soon” until a real URL is ready.
+Edit `index.html` to update quick links. Current cards include TikTok, Etsy, Goodreads, and The StoryGraph; the Amazon favorites card is intentionally labeled “Coming soon” until a real URL is ready.
 
 ### Add book reviews
 
