@@ -16,33 +16,35 @@
 
     <main>
       <section class="login-view" id="login-view">
+        <div class="login-intro">
+          <p class="eyebrow">The private stacks</p>
+          <h1>Every book leaves<br />a little <em>mark.</em></h1>
+          <p>Your personal library, reading notes, and reviews—kept together on one beautifully untidy shelf.</p>
+        </div>
+
         <form class="library-card" id="login-form">
-          <div class="card-heading">
-            <p>Library Card</p>
-            <span>Bex's Library · Member access</span>
-          </div>
+          <div class="card-topline"><span>BEX'S LIBRARY</span><span>MEMBER ACCESS</span></div>
           <div class="card-body">
-            <div class="card-art" aria-hidden="true">
-              <div class="book-icon"><span></span><span></span></div>
-              <div class="barcode"></div>
-            </div>
-            <div class="member-photo-wrap" id="portrait-frame" hidden>
+            <div class="portrait-frame" id="portrait-frame">
+              <span class="portrait-placeholder" aria-hidden="true">BL</span>
               <img id="member-photo" alt="Member portrait" hidden />
             </div>
             <div class="card-fields">
-              <label for="username">Username</label>
-              <input id="username" name="username" autocomplete="username" spellcheck="false" placeholder="Enter your username" required />
-              <p class="lookup-status" id="lookup-status" aria-live="polite">Enter your username to find your card.</p>
+              <label for="username">Member name</label>
+              <input id="username" name="username" autocomplete="username" spellcheck="false" required />
+              <p class="lookup-status" id="lookup-status" aria-live="polite">Enter your member name to find your card.</p>
               <div class="password-row" id="password-row" hidden>
                 <label for="password">Password</label>
-                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required />
+                <input id="password" name="password" type="password" autocomplete="current-password" required />
               </div>
             </div>
           </div>
+          <div class="card-stamp">BORROW<br />WILDLY</div>
+          <button class="card-submit" id="login-button" type="submit" disabled>Open my library <span>→</span></button>
           <p class="form-message" id="login-message" role="alert"></p>
-          <button class="card-submit" id="login-button" type="submit" disabled>Open library <span>→</span></button>
         </form>
       </section>
+    </main>
 
       <section class="app-view" id="app-view" hidden>
         <header class="app-header">

@@ -4,12 +4,10 @@ A private, Supabase-backed reading tracker with a library-card login, review cat
 
 ## Features
 
-- **Minimal library-card sign in:** a single blue card sits on a clean white page. Entering an exact username calls a small Supabase RPC and reveals that member's image without reloading the page; the password field appears only after the card is found.
+- **Library-card sign in:** entering an exact member name calls a small Supabase RPC and reveals that member's image without reloading the page. The password field appears only after the card is found.
 - **Private collections:** every book belongs to its authenticated user. The title and author are searchable columns; flexible details (status, rating, ISBN, cover, and review) live in `metadata` as JSONB. The owner's username is stored alongside each record.
 - **Review cards and 3D room:** saved reviews appear in the main collection and every title becomes a clickable book spine in the CSS-perspective library.
 - **Row Level Security:** members can only read and change their own profile and books. The publishable browser key is intentionally public; never use a service-role key in this site.
-
-Username lookup resolves the email already attached to the matching Supabase Auth account before calling password sign-in. This means members created with a normal email address can log in by username; they do not have to use the optional `username@members.bexslibrary.app` convention.
 
 ## Supabase setup
 

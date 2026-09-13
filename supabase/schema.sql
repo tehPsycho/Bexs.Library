@@ -2,7 +2,6 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text unique not null check (username = lower(username)),
-  login_email text not null,
   display_name text,
   avatar_url text,
   created_at timestamptz not null default now()
@@ -21,40 +20,24 @@ create table if not exists public.books (
 
 alter table public.profiles enable row level security;
 alter table public.books enable row level security;
-drop policy if exists "Members read their profile" on public.profiles;
-drop policy if exists "Members read their books" on public.books;
-drop policy if exists "Members add their books" on public.books;
-drop policy if exists "Members update their books" on public.books;
-drop policy if exists "Members delete their books" on public.books;
 create policy "Members read their profile" on public.profiles for select to authenticated using (id = auth.uid());
 create policy "Members read their books" on public.books for select to authenticated using (user_id = auth.uid());
 create policy "Members add their books" on public.books for insert to authenticated with check (user_id = auth.uid() and username = (select username from public.profiles where id = auth.uid()));
 create policy "Members update their books" on public.books for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "Members delete their books" on public.books for delete to authenticated using (user_id = auth.uid());
 
--- Existing projects created from an older version of this schema need the login
--- email backfilled because Supabase Auth signs in with email, not username.
-alter table public.profiles add column if not exists login_email text;
-update public.profiles p
-set login_email = u.email
-from auth.users u
-where p.id = u.id and p.login_email is null;
-alter table public.profiles alter column login_email set not null;
-
--- Returns the Auth email only after an exact username match so the browser can
--- pass the correct identifier to Supabase Auth. It never exposes passwords or IDs.
-drop function if exists public.preview_member_card(text);
+-- Returns only card artwork/name for an exact username. It never exposes email,
+-- password data, user UUIDs, or the profiles table itself to anonymous visitors.
 create or replace function public.preview_member_card(requested_username text)
-returns table (username text, display_name text, avatar_url text, login_email text)
+returns table (username text, display_name text, avatar_url text)
 language sql security definer stable set search_path = public
-as $$ select p.username, p.display_name, p.avatar_url, p.login_email from profiles p where p.username = lower(trim(requested_username)) limit 1 $$;
+as $$ select p.username, p.display_name, p.avatar_url from profiles p where p.username = lower(trim(requested_username)) limit 1 $$;
 revoke all on function public.preview_member_card(text) from public;
 grant execute on function public.preview_member_card(text) to anon, authenticated;
 
--- Creates the profile automatically for both real emails and the optional
--- username@members.bexslibrary.app convention.
+-- Creates the profile automatically. Member emails use username@members.bexslibrary.app.
 create or replace function public.create_member_profile()
 returns trigger language plpgsql security definer set search_path = public
-as $$ begin insert into profiles (id, username, login_email, display_name, avatar_url) values (new.id, split_part(new.email, '@', 1), new.email, coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)), new.raw_user_meta_data->>'avatar_url'); return new; end $$;
+as $$ begin insert into profiles (id, username, display_name, avatar_url) values (new.id, split_part(new.email, '@', 1), coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)), new.raw_user_meta_data->>'avatar_url'); return new; end $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.create_member_profile();

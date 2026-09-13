@@ -5,7 +5,6 @@ const $ = (selector) => document.querySelector(selector);
 let currentProfile = null;
 let books = [];
 let lookupTimer;
-let previewedLoginEmail = "";
 
 const normalizedUsername = (value) => value.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, "");
 const memberEmail = (username) => `${normalizedUsername(username)}@members.bexslibrary.app`;
@@ -14,33 +13,21 @@ const setLoginState = (found, profile) => {
   $("#login-button").disabled = !found;
   $("#lookup-status").className = `lookup-status ${found ? "success" : "error"}`;
   if (found) {
-    previewedLoginEmail = profile.login_email;
     $("#lookup-status").textContent = `Card found. Welcome, ${profile.display_name || profile.username}.`;
-    if (profile.avatar_url) {
-      $("#member-photo").src = profile.avatar_url;
-      $("#member-photo").hidden = false;
-      $("#portrait-frame").hidden = false;
-      $(".card-art").hidden = true;
-    }
+    if (profile.avatar_url) { $("#member-photo").src = profile.avatar_url; $("#member-photo").hidden = false; }
     $("#password").focus();
   } else {
-    previewedLoginEmail = "";
     $("#lookup-status").textContent = "No member card found with that name.";
     $("#member-photo").hidden = true;
-    $("#portrait-frame").hidden = true;
-    $(".card-art").hidden = false;
   }
 };
 
 $("#username").addEventListener("input", () => {
   clearTimeout(lookupTimer);
-  previewedLoginEmail = "";
-  $("#login-message").textContent = "";
   $("#password-row").hidden = true; $("#login-button").disabled = true; $("#member-photo").hidden = true;
-  $("#portrait-frame").hidden = true; $(".card-art").hidden = false;
   const username = normalizedUsername($("#username").value);
   $("#lookup-status").className = "lookup-status";
-  $("#lookup-status").textContent = username.length < 3 ? "Enter your username to find your card." : "Checking the card catalogue…";
+  $("#lookup-status").textContent = username.length < 3 ? "Enter your member name to find your card." : "Checking the card catalogue…";
   if (username.length < 3) return;
   lookupTimer = setTimeout(async () => {
     const { data, error } = await client.rpc("preview_member_card", { requested_username: username }).maybeSingle();
@@ -51,17 +38,10 @@ $("#username").addEventListener("input", () => {
 
 $("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const username = normalizedUsername($("#username").value);
   $("#login-message").textContent = "Opening your library…";
-  $("#login-message").className = "form-message";
-  const email = previewedLoginEmail || memberEmail($("#username").value);
-  const { error } = await client.auth.signInWithPassword({ email, password: $("#password").value });
-  if (error) {
-    $("#login-message").className = "form-message error";
-    $("#login-message").textContent = error.message === "Invalid login credentials"
-      ? "The password is incorrect. Please try again."
-      : `Unable to sign in: ${error.message}`;
-    return;
-  }
+  const { error } = await client.auth.signInWithPassword({ email: memberEmail(username), password: $("#password").value });
+  if (error) { $("#login-message").className = "form-message error"; $("#login-message").textContent = "That password does not match this card."; return; }
   await openLibrary();
 });
 
