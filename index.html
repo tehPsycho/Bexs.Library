@@ -46,28 +46,111 @@
       </section>
 
       <section class="app-view" id="app-view" hidden>
-        <header class="app-header">
-          <a class="wordmark" href="#">Bex's <i>Library</i></a>
-          <nav aria-label="Library views">
-            <button class="nav-button active" data-view="collection">My books</button>
-            <button class="nav-button" data-view="room">3D library</button>
-          </nav>
-          <div class="member-menu"><span id="member-name"></span><button id="sign-out" type="button">Sign out</button></div>
-        </header>
+        <div class="app-frame">
+          <div class="content-shell">
+            <header class="top-banner">
+              <button id="returnLibrary" class="top-link active" type="button">Home</button>
+              <button id="exploreLibrary" class="top-link" type="button">3D Library</button>
+              <div class="scan-box">
+                <div class="scanner-row">
+                  <input
+                    id="isbnInput"
+                    autocomplete="off"
+                    inputmode="numeric"
+                    placeholder="Scan or search ISBN"
+                    aria-describedby="scanHelp"
+                  />
+                  <button id="scanButton" type="button">Look up</button>
+                </div>
+                <span id="scanHelp">Scan a barcode or type an ISBN, then press Enter.</span>
+              </div>
+              <input id="librarySearch" class="top-library-search" placeholder="Search library" />
+              <label class="language-picker" title="Language">
+                <span aria-hidden="true">⚑</span>
+                <select id="languageSelect" aria-label="Language">
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                </select>
+              </label>
+              <div class="member-menu">
+                <span id="member-name"></span>
+                <button id="sign-out" type="button">Sign out</button>
+              </div>
+            </header>
 
-        <div class="collection-view" id="collection-view">
-          <section class="dashboard-hero">
-            <div><p class="eyebrow">Your collection</p><h2>Welcome back, <span id="welcome-name">reader</span>.</h2><p id="book-count">Your shelves are waiting.</p></div>
-            <button class="primary-button" id="show-add-book" type="button">＋ Add a book</button>
-          </section>
-          <section class="book-grid" id="book-grid" aria-live="polite"></section>
-          <section class="load-error" id="load-error" role="alert" hidden>
-            <span aria-hidden="true">!</span>
-            <h3>We couldn't open your shelves.</h3>
-            <p id="load-error-message">Your library is still safe. Please try loading it again.</p>
-            <button class="primary-button" id="retry-library" type="button">Try again</button>
-          </section>
-          <div class="empty-state" id="empty-state" hidden><span>✦</span><h3>Your shelf has room.</h3><p>Add the first book to begin your private collection.</p></div>
+            <main>
+              <section id="libraryView" class="view-panel library-view">
+                <section class="explore-card" aria-labelledby="exploreTitle">
+                  <div>
+                    <p class="eyebrow">Reading room</p>
+                    <h2 id="exploreTitle">Step into your shelves</h2>
+                    <p>Walk the room, approach the shelf, and scan new books from the table.</p>
+                  </div>
+                  <button id="exploreMain" class="primary-action" type="button">Explore your library!</button>
+                </section>
+
+                <section class="stats-grid" aria-label="Library stats">
+                  <article class="stat-card">
+                    <span>Books</span>
+                    <strong id="statBooks">0</strong>
+                  </article>
+                  <article class="stat-card">
+                    <span>Read</span>
+                    <strong id="statRead">0</strong>
+                  </article>
+                  <article class="stat-card">
+                    <span>Pages read</span>
+                    <strong id="statPages">0</strong>
+                  </article>
+                  <article class="stat-card">
+                    <span>Average rating</span>
+                    <strong id="statRating">-</strong>
+                  </article>
+                </section>
+
+                <section class="toolbar" aria-label="Library controls">
+                  <select id="statusFilter" aria-label="Filter by reading status">
+                    <option value="all">All books</option>
+                    <option value="unread">Unread</option>
+                    <option value="read">Read</option>
+                    <option value="rated">Rated</option>
+                  </select>
+                  <select id="sortBooks" aria-label="Sort books">
+                    <option value="added-desc">Newest added</option>
+                    <option value="title-asc">Title A-Z</option>
+                    <option value="author-asc">Author A-Z</option>
+                    <option value="rating-desc">Highest rated</option>
+                    <option value="finished-desc">Recently finished</option>
+                  </select>
+                </section>
+
+                <section class="shelf-section" aria-labelledby="shelfTitle">
+                  <div class="section-heading">
+                    <div>
+                      <p class="eyebrow">Shelves</p>
+                      <h2 id="shelfTitle">Your books</h2>
+                    </div>
+                    <p id="resultCount">No books yet</p>
+                  </div>
+                  <div id="bookGrid" class="book-grid"></div>
+                  <div id="emptyState" class="empty-state">
+                    <div class="empty-art" aria-hidden="true"></div>
+                    <h3>Your first shelf is waiting.</h3>
+                    <p>Scan a book's barcode or type an ISBN to pull in the details and add it here.</p>
+                  </div>
+                </section>
+              </section>
+
+              <section id="bookView" class="view-panel book-view" aria-live="polite">
+                <div id="bookDetail" class="book-detail-empty">
+                  <div class="empty-art" aria-hidden="true"></div>
+                  <h2>No book selected</h2>
+                  <p>Scan a barcode or choose a book from your shelves.</p>
+                </div>
+              </section>
+            </main>
+          </div>
         </div>
 
         <template id="panelTemplate">
