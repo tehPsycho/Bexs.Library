@@ -5,6 +5,7 @@ A private, Supabase-backed reading tracker with a library-card login, review cat
 ## Features
 
 - **Library-card sign in:** members authenticate with the full email address and password attached to their Supabase account.
+- **Self-service membership:** readers can request an account, confirm their email, and request password-reset emails from either the sign-in card or their member menu.
 - **Private collections:** every book belongs to its authenticated user. The title and author are searchable columns; flexible details (status, rating, ISBN, cover, and review) live in `metadata` as JSONB. The owner's username is stored alongside each record.
 - **Review cards and 3D room:** saved reviews appear in the main collection and every title becomes a clickable book spine in the CSS-perspective library.
 - **Row Level Security:** members can only read and change their own profile and books. The publishable browser key is intentionally public; never use a service-role key in this site.
@@ -29,7 +30,9 @@ cp supabase/schema.sql supabase/migrations/*_library_schema.sql
 supabase db push
 ```
 
-In **Authentication → Providers → Email**, enable email/password. Create a member with their full email address from the dashboard (**Authentication → Users → Add user**) and select **Auto Confirm User**, or use the Management API/service key from a trusted terminal:
+In **Authentication → Providers → Email**, enable email/password, enable new-user sign-ups, and leave **Confirm email** enabled. This prevents a requested card from signing in until its owner follows the emailed confirmation link. In **Authentication → URL Configuration**, allow the production and local URLs listed below so confirmation and password-reset links can return to the app.
+
+You can still create a pre-confirmed member from the dashboard (**Authentication → Users → Add user**) by selecting **Auto Confirm User**, or use the Management API/service key from a trusted terminal:
 
 ```bash
 export SUPABASE_URL='https://dsrafdzgjsogopracizc.supabase.co'
@@ -162,9 +165,9 @@ shows a useful error instead of leaving the `auth-loading` screen blank.
 2. Open **SQL Editor**, paste all of `supabase/schema.sql`, and run it. The script
    creates `profiles` and `books`, enables RLS, installs owner-only policies, and
    adds the trigger that creates a profile for each new Auth user.
-3. In **Authentication → Providers → Email**, enable Email/Password. For a private
-   library you can disable public sign-ups; accounts created by an administrator
-   still work.
+3. In **Authentication → Providers → Email**, enable Email/Password and public
+   sign-ups, and leave email confirmation enabled. The request-card form depends
+   on these settings; unconfirmed members cannot sign in.
 4. In **Authentication → URL Configuration**, set the Site URL to
    `https://bexslibrary.com` and add both `https://bexslibrary.com/**` and
    `http://localhost:8080/**` as redirect URLs.
