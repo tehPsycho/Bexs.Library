@@ -46,49 +46,239 @@
       </section>
 
       <section class="app-view" id="app-view" hidden>
-        <header class="app-header">
-          <a class="wordmark" href="#">Bex's <i>Library</i></a>
-          <nav aria-label="Library views">
-            <button class="nav-button active" data-view="collection">My books</button>
-            <button class="nav-button" data-view="room">3D library</button>
-          </nav>
-          <div class="member-menu"><span id="member-name"></span><button id="sign-out" type="button">Sign out</button></div>
-        </header>
+        <div class="app-frame">
+          <div class="content-shell">
+            <header class="top-banner">
+              <button id="returnLibrary" class="top-link active" type="button">Home</button>
+              <button id="exploreLibrary" class="top-link" type="button">3D Library</button>
+              <div class="scan-box">
+                <div class="scanner-row">
+                  <input
+                    id="isbnInput"
+                    autocomplete="off"
+                    inputmode="numeric"
+                    placeholder="Scan or search ISBN"
+                    aria-describedby="scanHelp"
+                  />
+                  <button id="scanButton" type="button">Look up</button>
+                </div>
+                <span id="scanHelp">Scan a barcode or type an ISBN, then press Enter.</span>
+              </div>
+              <input id="librarySearch" class="top-library-search" placeholder="Search library" />
+              <label class="language-picker" title="Language">
+                <span aria-hidden="true">⚑</span>
+                <select id="languageSelect" aria-label="Language">
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                </select>
+              </label>
+              <div class="member-menu">
+                <span id="member-name"></span>
+                <button id="sign-out" type="button">Sign out</button>
+              </div>
+            </header>
 
-        <div class="collection-view" id="collection-view">
-          <section class="dashboard-hero">
-            <div><p class="eyebrow">Your collection</p><h2>Welcome back, <span id="welcome-name">reader</span>.</h2><p id="book-count">Your shelves are waiting.</p></div>
-            <button class="primary-button" id="show-add-book" type="button">＋ Add a book</button>
-          </section>
-          <section class="book-grid" id="book-grid" aria-live="polite"></section>
-          <div class="empty-state" id="empty-state" hidden><span>✦</span><h3>Your shelf has room.</h3><p>Add the first book to begin your private collection.</p></div>
+            <main>
+              <section id="libraryView" class="view-panel library-view">
+                <section class="explore-card" aria-labelledby="exploreTitle">
+                  <div>
+                    <p class="eyebrow">Reading room</p>
+                    <h2 id="exploreTitle">Step into your shelves</h2>
+                    <p>Walk the room, approach the shelf, and scan new books from the table.</p>
+                  </div>
+                  <button id="exploreMain" class="primary-action" type="button">Explore your library!</button>
+                </section>
+
+                <section class="stats-grid" aria-label="Library stats">
+                  <article class="stat-card">
+                    <span>Books</span>
+                    <strong id="statBooks">0</strong>
+                  </article>
+                  <article class="stat-card">
+                    <span>Read</span>
+                    <strong id="statRead">0</strong>
+                  </article>
+                  <article class="stat-card">
+                    <span>Pages read</span>
+                    <strong id="statPages">0</strong>
+                  </article>
+                  <article class="stat-card">
+                    <span>Average rating</span>
+                    <strong id="statRating">-</strong>
+                  </article>
+                </section>
+
+                <section class="toolbar" aria-label="Library controls">
+                  <select id="statusFilter" aria-label="Filter by reading status">
+                    <option value="all">All books</option>
+                    <option value="unread">Unread</option>
+                    <option value="read">Read</option>
+                    <option value="rated">Rated</option>
+                  </select>
+                  <select id="sortBooks" aria-label="Sort books">
+                    <option value="added-desc">Newest added</option>
+                    <option value="title-asc">Title A-Z</option>
+                    <option value="author-asc">Author A-Z</option>
+                    <option value="rating-desc">Highest rated</option>
+                    <option value="finished-desc">Recently finished</option>
+                  </select>
+                </section>
+
+                <section class="shelf-section" aria-labelledby="shelfTitle">
+                  <div class="section-heading">
+                    <div>
+                      <p class="eyebrow">Shelves</p>
+                      <h2 id="shelfTitle">Your books</h2>
+                    </div>
+                    <p id="resultCount">No books yet</p>
+                  </div>
+                  <div id="bookGrid" class="book-grid"></div>
+                  <div id="emptyState" class="empty-state">
+                    <div class="empty-art" aria-hidden="true"></div>
+                    <h3>Your first shelf is waiting.</h3>
+                    <p>Scan a book's barcode or type an ISBN to pull in the details and add it here.</p>
+                  </div>
+                </section>
+              </section>
+
+              <section id="bookView" class="view-panel book-view" aria-live="polite">
+                <div id="bookDetail" class="book-detail-empty">
+                  <div class="empty-art" aria-hidden="true"></div>
+                  <h2>No book selected</h2>
+                  <p>Scan a barcode or choose a book from your shelves.</p>
+                </div>
+              </section>
+            </main>
+          </div>
         </div>
 
-        <section class="room-view" id="room-view" hidden>
-          <div class="room-heading"><p class="eyebrow">Shelf view</p><h2>Your reading room</h2><p>Drag across the shelves to explore your collection.</p></div>
-          <div class="library-room"><div class="back-wall"><div class="shelf" id="shelf-1"></div><div class="shelf" id="shelf-2"></div><div class="shelf" id="shelf-3"></div></div><div class="floor"></div></div>
+        <template id="panelTemplate">
+          <div class="panel-layout">
+            <div class="cover-wrap">
+              <img class="detail-cover" alt="" />
+              <div class="cover-fallback">No cover</div>
+            </div>
+            <div class="detail-main">
+              <p class="panel-kicker"></p>
+              <h2 id="panelTitle"></h2>
+              <p class="detail-author"></p>
+              <p class="synopsis"></p>
+              <dl class="meta-list"></dl>
+              <div class="lookup-actions"></div>
+
+              <form class="review-form">
+                <fieldset>
+                  <legend>Reading status</legend>
+                  <label class="check-row">
+                    <input type="checkbox" name="isRead" />
+                    <span>Marked as read</span>
+                  </label>
+                  <div class="date-actions">
+                    <button type="button" data-finish-today>Finished today</button>
+                    <label>
+                      Date finished
+                      <input type="date" name="finishedDate" />
+                    </label>
+                    <label>
+                      Start date
+                      <input type="date" name="startDate" />
+                    </label>
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Your rating</legend>
+                  <div class="rating-row">
+                    <input type="range" name="rating" min="0" max="5" step="0.5" value="0" />
+                    <strong class="rating-value">Not rated</strong>
+                  </div>
+                  <div class="stars" aria-hidden="true"></div>
+                </fieldset>
+
+                <label class="review-label">
+                  Review
+                  <textarea name="review" rows="6" placeholder="What stayed with you?"></textarea>
+                </label>
+
+                <div class="form-actions">
+                  <button class="primary-action" type="submit">Save book notes</button>
+                  <button class="danger-action" type="button" data-remove-book>Remove from library</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </template>
+
+        <section id="exploreMode" class="explore-mode" aria-hidden="true">
+          <canvas id="exploreCanvas" aria-label="Full screen 3D library"></canvas>
+          <div class="explore-hud">
+            <div>
+              <p class="eyebrow">Explore mode</p>
+              <strong id="explorePrompt">WASD to move. Move the mouse to look.</strong>
+            </div>
+            <button id="exitExplore" type="button">Exit</button>
+          </div>
+          <div class="crosshair" aria-hidden="true"></div>
+          <div id="inspectBar" class="inspect-bar" aria-hidden="true">
+            <div class="inspect-refine" aria-label="Book render controls">
+              <p class="inspect-settings-title">Book render</p>
+              <label>
+                Spine
+                <input id="spineColorInput" type="color" value="#7b2e3b" />
+              </label>
+              <label>
+                Pages
+                <input id="pageColorInput" type="color" value="#f5ead7" />
+              </label>
+              <div>
+                <span>Size</span>
+                <input id="bookSizeSlider" type="range" min="0" max="100" value="50" />
+              </div>
+              <div>
+                <span>Thickness</span>
+                <input id="bookThicknessSlider" type="range" min="0" max="100" value="50" />
+              </div>
+            </div>
+          </div>
+          <div id="scannerModal" class="scanner-modal" aria-hidden="true">
+            <form id="exploreScanForm" class="scanner-window">
+              <p class="eyebrow">Handheld scanner</p>
+              <h2>Scan a new book</h2>
+              <label for="exploreIsbn">ISBN</label>
+              <input id="exploreIsbn" autocomplete="off" inputmode="numeric" placeholder="Scan or type ISBN" />
+              <div class="form-actions">
+                <button class="primary-action" type="submit">Scan book</button>
+                <button id="cancelExploreScan" type="button">Cancel</button>
+              </div>
+            </form>
+          </div>
+          <article id="heldBookOverlay" class="held-book-overlay" aria-hidden="true">
+            <div class="held-book-copy">
+              <p class="eyebrow">In your hands</p>
+              <h2 id="heldBookTitle"></h2>
+              <p id="heldBookAuthor"></p>
+              <div class="held-synopsis-scroll">
+                <p id="heldBookSynopsis"></p>
+              </div>
+              <form id="heldBookForm">
+                <label class="review-label-inline">
+                  <span>Review</span>
+                  <div class="review-rating-inline">
+                    <div id="inspectStars" class="inspect-stars" aria-label="Book rating"></div>
+                    <strong id="heldBookRatingText">Not rated</strong>
+                  </div>
+                  <textarea id="heldBookReview" rows="4" placeholder="What stayed with you?"></textarea>
+                </label>
+                <button class="primary-action" type="submit">Save notes</button>
+              </form>
+            </div>
+          </article>
         </section>
+
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
       </section>
     </main>
-
-    <dialog id="book-dialog">
-      <form id="book-form" method="dialog">
-        <div class="dialog-heading"><div><p class="eyebrow">Catalogue a title</p><h2>Add a book</h2></div><button class="close-button" value="cancel" formnovalidate aria-label="Close">×</button></div>
-        <div class="form-grid">
-          <label>Title <input name="title" required /></label>
-          <label>Author <input name="author" required /></label>
-          <label>Cover image URL <input name="cover_url" type="url" placeholder="https://…" /></label>
-          <label>Status <select name="status"><option>Want to read</option><option>Reading</option><option>Read</option><option>Did not finish</option></select></label>
-          <label>Rating <select name="rating"><option value="">Not rated</option><option value="1">1 star</option><option value="2">2 stars</option><option value="3">3 stars</option><option value="4">4 stars</option><option value="5">5 stars</option></select></label>
-          <label>ISBN <input name="isbn" /></label>
-          <label class="full-width">Review & notes <textarea name="review" rows="5"></textarea></label>
-        </div>
-        <p class="form-message" id="book-message" role="alert"></p>
-        <button class="primary-button full-width" type="submit">Save to my shelf</button>
-      </form>
-    </dialog>
-
-    <template id="book-template"><article class="book-card"><div class="book-cover"><span></span><img alt="" hidden /></div><div class="book-info"><p class="book-status"></p><h3></h3><p class="book-author"></p><div class="stars"></div><p class="book-review"></p></div><button class="delete-book" type="button" aria-label="Remove book">×</button></article></template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
