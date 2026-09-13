@@ -493,7 +493,7 @@ if (canvas && api) {
     colorInference.add(book.id);
     const image = new Image();
     image.crossOrigin = "anonymous";
-    image.onload = () => {
+    image.onload = async () => {
       try {
         const canvas = document.createElement("canvas");
         canvas.width = 32;
@@ -518,7 +518,7 @@ if (canvas && api) {
         if (!best) return;
         const [r, g, b] = best.split(",").map(Number);
         const color = `#${[r, g, b].map((part) => Math.max(0, Math.min(255, part)).toString(16).padStart(2, "0")).join("")}`;
-        const updated = api.updateBookRender(book.id, { spineColor: color, spineFromCover: true });
+        const updated = await api.updateBookRender(book.id, { spineColor: color, spineFromCover: true });
         if (held?.book.id === book.id && updated) {
           held.book = updated;
           rebuildHeldBookMesh();
@@ -787,10 +787,11 @@ if (canvas && api) {
     if (bookThicknessSlider) bookThicknessSlider.value = String(Math.round(THREE.MathUtils.clamp((spec.depth - 0.36) / 0.32, 0, 1) * 100));
   }
 
-  function updateHeldRender(changes) {
+  async function updateHeldRender(changes) {
     if (!held) return;
-    const updated = api.updateBookRender(held.book.id, changes);
-    held.book = updated || { ...held.book, render: { ...(held.book.render || {}), ...changes } };
+    const updated = await api.updateBookRender(held.book.id, changes);
+    if (!updated) return;
+    held.book = updated;
     rebuildHeldBookMesh();
     syncRenderControls();
     lastSignature = "";
@@ -828,10 +829,11 @@ if (canvas && api) {
     setQuickRating(star - 1 + nextFill);
   }
 
-  function setQuickRating(value) {
+  async function setQuickRating(value) {
     if (!held) return;
-    const updated = api.updateBookNotes(held.book.id, { rating: value });
-    held.book = updated || { ...held.book, rating: value };
+    const updated = await api.updateBookNotes(held.book.id, { rating: value });
+    if (!updated) return;
+    held.book = updated;
     held.backScroll = 0;
     refreshHeldMaterials();
     renderInspectStars();
@@ -858,14 +860,14 @@ if (canvas && api) {
     mesh.material[5].needsUpdate = true;
   }
 
-  function putHeldBookBack() {
+  async function putHeldBookBack() {
     if (!held) return;
     const bookId = held.book.id;
     exitInspectMode(false);
     camera.remove(held.group);
     held = null;
     placementMarker.visible = false;
-    if (placementSlot !== null) api.moveBookToSlot(bookId, placementSlot);
+    if (placementSlot !== null) await api.moveBookToSlot(bookId, placementSlot);
     placementSlot = null;
     lastSignature = "";
     renderShelf(api.getBooks());
@@ -901,11 +903,12 @@ if (canvas && api) {
     if (options.resumePointerLock !== false && active && !scannerOpen && !inspectMode) canvas.requestPointerLock?.();
   }
 
-  function saveHeldNotes(event) {
+  async function saveHeldNotes(event) {
     event.preventDefault();
     if (!held) return;
-    const updated = api.updateBookNotes(held.book.id, { rating: Number(held.book.rating) || 0, review: overlayReview.value.trim() });
-    held.book = updated || held.book;
+    const updated = await api.updateBookNotes(held.book.id, { rating: Number(held.book.rating) || 0, review: overlayReview.value.trim() });
+    if (!updated) return;
+    held.book = updated;
     refreshHeldMaterials();
     renderInspectStars();
     updateOverlayRating();
