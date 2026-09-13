@@ -35,9 +35,6 @@ create policy "Members add their books" on public.books for insert to authentica
 create policy "Members update their books" on public.books for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "Members delete their books" on public.books for delete to authenticated using (user_id = auth.uid());
 
--- Remove the anonymous username lookup used by the previous login flow.
-drop function if exists public.preview_member_card(text);
-
 -- Creates the profile automatically. Authentication uses the user's full email;
 -- username remains an internal, lowercase owner label for catalogue records.
 create or replace function public.create_member_profile()
