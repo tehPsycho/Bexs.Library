@@ -3,166 +3,94 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="Bex's Library shares cozy book reviews, Little Free Library visits, Etsy finds, and earth-toned bookish inspiration."
-    />
-    <title>Bex's Library | Book Reviews & Little Free Library Adventures</title>
+    <meta name="description" content="A private, three-dimensional home for your reading life." />
+    <title>Bex's Library | Member collection</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="icon" type="image/jpeg" href="images/bexslibraryprofile.jpeg" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+    <link rel="icon" href="images/bexslibraryprofile.jpeg" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="site-header" id="top">
-      <nav class="nav" aria-label="Primary navigation">
-        <a class="brand" href="#top" aria-label="Bex's Library home">
-          <span class="brand-mark" aria-hidden="true">
-            <img src="images/bexslibraryprofile.jpeg" alt="" />
-          </span>
-          <span>Bex's Library</span>
-        </a>
-        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
-          Menu
-        </button>
-        <div class="nav-links" id="nav-links">
-          <a href="#links">Links</a>
-          <a href="#reviews">Reviews</a>
-          <a href="#libraries">Little Free Libraries</a>
-          <a href="#comments">Comments</a>
-        </div>
-      </nav>
-
-      <section class="hero section-grid">
-        <div class="hero-copy">
-          <p class="eyebrow">Bookish adventures, tiny libraries, cozy reviews</p>
-          <h1>Follow along as Bex reads, reviews, and visits Little Free Libraries.</h1>
-          <p class="hero-text">
-            A companion home for the Bex's Library TikTok: quick access to shop links,
-            favorite reads, handmade bookish finds, and a growing map of Little Free Library stops.
-          </p>
-          <div class="hero-actions" aria-label="Featured links">
-            <a class="button button-primary" href="https://www.tiktok.com/@bexs.library">Visit TikTok</a>
-            <a class="button button-secondary" href="https://www.etsy.com/shop/threeheartsbeading">Shop Etsy</a>
-          </div>
-        </div>
-        <aside class="feature-card" aria-label="Current reading spotlight">
-          <p class="feature-label">Inspired by Bex's shelves</p>
-          <h2>Forest shelves, mushroom cream, and vintage-library magic.</h2>
-          <p>
-            An earth-toned home base for reviews, handmade bookish finds, and Little Free Library
-            adventures.
-          </p>
-          <div class="seal-preview" aria-hidden="true">
-            <img src="images/bexslibraryprofile.jpeg" alt="" />
-          </div>
-        </aside>
-      </section>
-    </header>
+    <div class="grain" aria-hidden="true"></div>
 
     <main>
-      <section class="section section-grid" id="links" aria-labelledby="links-title">
-        <div>
-          <p class="eyebrow">Find Bex's Library elsewhere</p>
-          <h2 id="links-title">Quick links</h2>
-          <p>
-            Shop Bex's Etsy finds, follow along on TikTok, track current reads on Goodreads and
-            StoryGraph, and check back for Amazon favorites once that collection is ready.
-          </p>
-        </div>
-        <div class="link-card-grid">
-          <a class="link-card" href="https://www.tiktok.com/@bexs.library">
-            <span class="link-icon" aria-hidden="true">🎬</span>
-            <strong>TikTok</strong>
-            <span>@bexs.library</span>
-          </a>
-          <a class="link-card" href="https://www.etsy.com/shop/threeheartsbeading">
-            <span class="link-icon" aria-hidden="true">🛍️</span>
-            <strong>Etsy</strong>
-            <span>Three Hearts Beading</span>
-          </a>
-          <a class="link-card" href="https://www.goodreads.com/user/show/172044100-rebecca">
-            <span class="link-icon" aria-hidden="true">📖</span>
-            <strong>Goodreads</strong>
-            <span>Rebecca's reading profile</span>
-          </a>
-          <a class="link-card" href="https://app.thestorygraph.com/profile/hexedherb">
-            <span class="link-icon" aria-hidden="true">📚</span>
-            <strong>The StoryGraph</strong>
-            <span>@hexedherb</span>
-          </a>
-          <div class="link-card link-card-disabled" aria-label="Amazon favorites coming soon">
-            <span class="link-icon" aria-hidden="true">🍄</span>
-            <strong>Amazon favorites</strong>
-            <span>Coming soon</span>
+      <section class="login-view" id="login-view">
+        <form class="library-card" id="login-form">
+          <div class="card-heading">
+            <p>Library Card</p>
+            <span>Bex's Library · Member access</span>
           </div>
-        </div>
-      </section>
-
-      <section class="section reviews-section" id="reviews" aria-labelledby="reviews-title">
-        <div class="section-heading">
-          <p class="eyebrow">Reviews</p>
-          <h2 id="reviews-title">Latest book notes</h2>
-          <p>
-            Start with these sample cards, then edit the review data in <code>script.js</code> as you
-            publish full reviews and TikToks.
-          </p>
-        </div>
-        <div class="review-grid" id="review-grid" aria-live="polite"></div>
-      </section>
-
-      <section class="section map-section" id="libraries" aria-labelledby="libraries-title">
-        <div class="section-heading">
-          <p class="eyebrow">Little Free Library map</p>
-          <h2 id="libraries-title">Visited & reviewed libraries</h2>
-          <p>
-            A simpler interactive map for Little Free Library stops. Tap a marker to open that
-            library's mini page with visit notes, review text, and a review or video link.
-          </p>
-        </div>
-        <div class="map-layout">
-          <div id="library-map" class="library-map" role="application" aria-label="Map of Little Free Libraries"></div>
-          <div class="map-panel">
-            <div class="map-panel-heading">
-              <p class="eyebrow">Map guide</p>
-              <h3>Library stops</h3>
-              <p>Choose a marker or card to view that library's page/review notes.</p>
+          <div class="card-body">
+            <div class="card-art" aria-hidden="true">
+              <div class="book-icon"><span></span><span></span></div>
+              <div class="barcode"></div>
             </div>
-            <div class="library-list" id="library-list" aria-label="Little Free Library list"></div>
-            <div id="library-detail" class="library-detail" aria-live="polite"></div>
+            <div class="member-photo-wrap" id="portrait-frame" hidden>
+              <img id="member-photo" alt="Member portrait" hidden />
+            </div>
+            <div class="card-fields">
+              <label for="username">Username</label>
+              <input id="username" name="username" autocomplete="username" spellcheck="false" placeholder="Enter your username" required />
+              <p class="lookup-status" id="lookup-status" aria-live="polite">Enter your username to find your card.</p>
+              <div class="password-row" id="password-row" hidden>
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required />
+              </div>
+            </div>
           </div>
-        </div>
+          <p class="form-message" id="login-message" role="alert"></p>
+          <button class="card-submit" id="login-button" type="submit" disabled>Open library <span>→</span></button>
+        </form>
       </section>
 
-      <section class="section comments-section" id="comments" aria-labelledby="comments-title">
-        <div class="section-heading">
-          <p class="eyebrow">Community</p>
-          <h2 id="comments-title">Reader comments</h2>
-          <p>
-            GitHub Pages is static, so comments need a hosted service. This section is ready for
-            Giscus, which stores comments in GitHub Discussions, or another embed like Disqus.
-          </p>
+      <section class="app-view" id="app-view" hidden>
+        <header class="app-header">
+          <a class="wordmark" href="#">Bex's <i>Library</i></a>
+          <nav aria-label="Library views">
+            <button class="nav-button active" data-view="collection">My books</button>
+            <button class="nav-button" data-view="room">3D library</button>
+          </nav>
+          <div class="member-menu"><span id="member-name"></span><button id="sign-out" type="button">Sign out</button></div>
+        </header>
+
+        <div class="collection-view" id="collection-view">
+          <section class="dashboard-hero">
+            <div><p class="eyebrow">Your collection</p><h2>Welcome back, <span id="welcome-name">reader</span>.</h2><p id="book-count">Your shelves are waiting.</p></div>
+            <button class="primary-button" id="show-add-book" type="button">＋ Add a book</button>
+          </section>
+          <section class="book-grid" id="book-grid" aria-live="polite"></section>
+          <div class="empty-state" id="empty-state" hidden><span>✦</span><h3>Your shelf has room.</h3><p>Add the first book to begin your private collection.</p></div>
         </div>
-        <div class="comments-placeholder">
-          <h3>Enable comments later</h3>
-          <p>
-            Replace this card with your Giscus script after enabling Discussions for the repository.
-            Until then, invite readers to comment on TikTok.
-          </p>
-          <a class="button button-secondary" href="https://giscus.app/">Configure Giscus</a>
-        </div>
+
+        <section class="room-view" id="room-view" hidden>
+          <div class="room-heading"><p class="eyebrow">Shelf view</p><h2>Your reading room</h2><p>Drag across the shelves to explore your collection.</p></div>
+          <div class="library-room"><div class="back-wall"><div class="shelf" id="shelf-1"></div><div class="shelf" id="shelf-2"></div><div class="shelf" id="shelf-3"></div></div><div class="floor"></div></div>
+        </section>
       </section>
     </main>
 
-    <footer class="site-footer">
-      <p>© <span id="year"></span> Bex's Library. Built for GitHub Pages.</p>
-      <a href="#top">Back to top ↑</a>
-    </footer>
+    <dialog id="book-dialog">
+      <form id="book-form" method="dialog">
+        <div class="dialog-heading"><div><p class="eyebrow">Catalogue a title</p><h2>Add a book</h2></div><button class="close-button" value="cancel" formnovalidate aria-label="Close">×</button></div>
+        <div class="form-grid">
+          <label>Title <input name="title" required /></label>
+          <label>Author <input name="author" required /></label>
+          <label>Cover image URL <input name="cover_url" type="url" placeholder="https://…" /></label>
+          <label>Status <select name="status"><option>Want to read</option><option>Reading</option><option>Read</option><option>Did not finish</option></select></label>
+          <label>Rating <select name="rating"><option value="">Not rated</option><option value="1">1 star</option><option value="2">2 stars</option><option value="3">3 stars</option><option value="4">4 stars</option><option value="5">5 stars</option></select></label>
+          <label>ISBN <input name="isbn" /></label>
+          <label class="full-width">Review & notes <textarea name="review" rows="5"></textarea></label>
+        </div>
+        <p class="form-message" id="book-message" role="alert"></p>
+        <button class="primary-button full-width" type="submit">Save to my shelf</button>
+      </form>
+    </dialog>
 
+    <template id="book-template"><article class="book-card"><div class="book-cover"><span></span><img alt="" hidden /></div><div class="book-info"><p class="book-status"></p><h3></h3><p class="book-author"></p><div class="stars"></div><p class="book-review"></p></div><button class="delete-book" type="button" aria-label="Remove book">×</button></article></template>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
