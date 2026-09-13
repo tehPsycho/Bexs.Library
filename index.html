@@ -56,15 +56,14 @@
                   <input
                     id="isbnInput"
                     autocomplete="off"
-                    inputmode="numeric"
-                    placeholder="Scan or search ISBN"
+                    inputmode="search"
+                    placeholder="Search title, author, or ISBN"
                     aria-describedby="scanHelp"
                   />
-                  <button id="scanButton" type="button">Look up</button>
+                  <button id="scanButton" type="button">Search</button>
                 </div>
-                <span id="scanHelp">Scan a barcode or type an ISBN, then press Enter.</span>
+                <span id="scanHelp">Search your shelves, or enter a new ISBN to look it up.</span>
               </div>
-              <input id="librarySearch" class="top-library-search" placeholder="Search library" />
               <label class="language-picker" title="Language">
                 <span aria-hidden="true">⚑</span>
                 <select id="languageSelect" aria-label="Language">
@@ -74,6 +73,7 @@
                 </select>
               </label>
               <div class="member-menu">
+                <span id="member-avatar" class="member-avatar" aria-hidden="true">B</span>
                 <span id="member-name"></span>
                 <button id="sign-out" type="button">Sign out</button>
               </div>

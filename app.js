@@ -1,13 +1,13 @@
 (function () {
-  const { deserializeBook } = window.BexsBookMetadata;
+  const { deserializeBook, serializeBook } = window.BexsBookMetadata;
   const STORAGE_KEY = "beccas-library:v1";
   const SETTINGS_KEY = "beccas-library:settings";
   const config = window.BEXS_CONFIG;
-  const supabaseClient = window.supabase?.createClient(config?.supabaseUrl, config?.supabasePublishableKey);
+  const supabaseClient = window.BexsSupabaseClient
+    || window.supabase?.createClient(config?.supabaseUrl, config?.supabasePublishableKey);
   const elements = {
     isbnInput: document.querySelector("#isbnInput"),
     scanButton: document.querySelector("#scanButton"),
-    librarySearch: document.querySelector("#librarySearch"),
     statusFilter: document.querySelector("#statusFilter"),
     sortBooks: document.querySelector("#sortBooks"),
     returnLibrary: document.querySelector("#returnLibrary"),
@@ -81,6 +81,14 @@
       if (error) throw error;
     },
   };
+
+  function rowToRenderBook(row) {
+    return hydrateBookRender(deserializeBook(row));
+  }
+
+  function renderBookToMetadata(book) {
+    return serializeBook(book).metadata;
+  }
 
   function reportDatabaseError(action, error) {
     console.error(`Could not ${action}`, error);
@@ -226,6 +234,20 @@
     window.setTimeout(() => translatePageText(element), 0);
   }
 
+  async function submitSearch() {
+    const rawQuery = elements.isbnInput.value.trim();
+    const isbn = normalizeIsbn(rawQuery);
+    const isIsbn = (/^\d{9}[\dX]$|^\d{13}$/).test(isbn) && (/^[\d\sXx-]+$/).test(rawQuery);
+
+    if (!rawQuery || !isIsbn) {
+      showLibrary();
+      renderBooks();
+      if (!rawQuery) elements.isbnInput.focus();
+      return;
+    }
+    await lookupByIsbn(isbn);
+  }
+
   async function lookupByIsbn(rawIsbn) {
     const isbn = normalizeIsbn(rawIsbn);
     if (!isbn) {
@@ -253,23 +275,21 @@
       showToast("The lookup service did not answer. Try again in a moment.");
     } finally {
       setLookupBusy(false);
-      elements.isbnInput.value = "";
     }
   }
 
   function setLookupBusy(isBusy) {
     elements.scanButton.disabled = isBusy;
-    elements.scanButton.textContent = isBusy ? "Looking..." : "Look up";
+    elements.scanButton.textContent = isBusy ? "Looking..." : "Search";
   }
 
   async function fetchBookData(isbn) {
-    const [openLibrary, google, googleLanguage, openLibrarySearch, archive, alternateIsbns] = await Promise.allSettled([
+    const [openLibrary, google, googleLanguage, openLibrarySearch, archive] = await Promise.allSettled([
       fetchOpenLibrary(isbn),
       fetchGoogleBooks(isbn),
       fetchGoogleBooks(isbn, settings.language),
       fetchOpenLibrarySearch(isbn),
       withTimeout(fetchArchiveMetadata(isbn), 1200),
-      withTimeout(fetchThingIsbnAlternates(isbn), 1200),
     ]);
     const primary = openLibrary.status === "fulfilled" ? openLibrary.value : null;
     const fallback = google.status === "fulfilled" ? google.value : null;
@@ -278,21 +298,10 @@
     const archiveExtras = archive.status === "fulfilled" ? archive.value : null;
     const merged = mergeBookData(isbn, primary, preferredLanguage || fallback, mergeExtras(searchExtras, archiveExtras));
     if (needsSynopsis(merged)) {
-      const isbnAlternates = alternateIsbns.status === "fulfilled" ? alternateIsbns.value : [];
-      const alternateLookups = isbnAlternates
-        .filter((alternate) => alternate && alternate !== isbn)
-        .slice(0, 4)
-        .flatMap((alternate) => [
-          withTimeout(fetchGoogleBooks(alternate, settings.language), 1200),
-          withTimeout(fetchOpenLibrarySearch(alternate), 1200),
-          withTimeout(fetchArchiveMetadata(alternate), 1200),
-        ]);
-      const [titleSearch, titleSearchEnglish, richerOpenLibrary, libraryThing, ...alternateResults] = await Promise.allSettled([
+      const [titleSearch, titleSearchEnglish, richerOpenLibrary] = await Promise.allSettled([
         withTimeout(fetchGoogleBooksByTitle(merged), 1200),
         withTimeout(fetchGoogleBooksByTitle(merged, "en"), 1200),
         withTimeout(fetchOpenLibraryByTitle(merged), 1200),
-        withTimeout(fetchLibraryThingWork(isbn), 1200),
-        ...alternateLookups,
       ]);
       Object.assign(
         merged,
@@ -301,8 +310,6 @@
           titleSearch.status === "fulfilled" ? titleSearch.value : null,
           titleSearchEnglish.status === "fulfilled" ? titleSearchEnglish.value : null,
           richerOpenLibrary.status === "fulfilled" ? richerOpenLibrary.value : null,
-          libraryThing.status === "fulfilled" ? libraryThing.value : null,
-          ...alternateResults.map((result) => (result.status === "fulfilled" ? result.value : null)),
         ),
       );
     }
@@ -445,21 +452,6 @@
     const meta = await metadata.json();
     const description = meta.metadata?.description;
     return description ? { synopsis: Array.isArray(description) ? description.join(" ") : description } : null;
-  }
-
-  async function fetchThingIsbnAlternates(isbn) {
-    const response = await fetch(`https://www.librarything.com/api/thingISBN/${encodeURIComponent(isbn)}`);
-    if (!response.ok) return [];
-    const xml = await response.text();
-    return unique([...xml.matchAll(/<isbn>([^<]+)<\/isbn>/gi)].map((match) => normalizeIsbn(match[1]))).filter(Boolean);
-  }
-
-  async function fetchLibraryThingWork(isbn) {
-    const response = await fetch(`https://www.librarything.com/api/thingTitle/${encodeURIComponent(isbn)}`);
-    if (!response.ok) return null;
-    const xml = await response.text();
-    const title = decodeHtml(xml.match(/<title>([^<]+)<\/title>/i)?.[1] || "");
-    return title ? fetchGoogleBooksByTitle({ title, authors: [] }, settings.language) : null;
   }
 
   function mergeExtras(...extras) {
@@ -815,7 +807,7 @@
   }
 
   function filteredBooks() {
-    const query = elements.librarySearch.value.trim().toLowerCase();
+    const query = elements.isbnInput.value.trim().toLowerCase();
     const status = elements.statusFilter.value;
     const sort = elements.sortBooks.value;
 
@@ -1175,14 +1167,16 @@
     },
   };
 
-  elements.scanButton.addEventListener("click", () => lookupByIsbn(elements.isbnInput.value));
+  elements.scanButton.addEventListener("click", submitSearch);
   elements.isbnInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      lookupByIsbn(elements.isbnInput.value);
+      submitSearch();
     }
   });
-  elements.librarySearch.addEventListener("input", renderBooks);
+  elements.isbnInput.addEventListener("input", () => {
+    if (!document.body.classList.contains("show-book")) renderBooks();
+  });
   elements.statusFilter.addEventListener("change", renderBooks);
   elements.sortBooks.addEventListener("change", renderBooks);
   elements.returnLibrary.addEventListener("click", showLibrary);
