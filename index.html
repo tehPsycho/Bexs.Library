@@ -3,6 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      // Camera APIs are only exposed in secure contexts. Upgrade deployed visits
+      // before the application starts while preserving HTTP for local development.
+      if (location.protocol === "http:"
+        && !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
+        location.replace(`https://${location.host}${location.pathname}${location.search}${location.hash}`);
+      }
+    </script>
     <meta name="description" content="A private, three-dimensional home for your reading life." />
     <title>Bex's Library | Member collection</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

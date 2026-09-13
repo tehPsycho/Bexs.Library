@@ -141,7 +141,7 @@ legacy aliases.
 
 ## Deployment
 
-This remains a static site and can be published with GitHub Pages. Apply the database schema first, add the deployed origin to Supabase's URL configuration, then deploy the repository root. `CNAME` retains the custom-domain configuration.
+This remains a static site and can be published with GitHub Pages. Apply the database schema first, add the deployed origin to Supabase's URL configuration, then deploy the repository root. `CNAME` retains the custom-domain configuration. In the repository's **Settings → Pages**, enable **Enforce HTTPS**; mobile browsers do not expose the camera API to an insecure page.
 
 ## Clean setup and blank-page recovery
 

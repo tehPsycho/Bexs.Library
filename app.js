@@ -295,7 +295,11 @@
 
   async function openCameraScanner() {
     if (!navigator.mediaDevices?.getUserMedia) {
-      showToast("Camera access is unavailable. Check that this page is open over HTTPS.");
+      if (!window.isSecureContext) {
+        showToast("Camera access requires HTTPS. Reopen this page using its secure address.");
+      } else {
+        showToast("This browser cannot access the camera. Update Chrome or check whether it is blocked for this site.");
+      }
       return;
     }
 
@@ -315,9 +319,14 @@
     } catch (error) {
       console.error("Could not start barcode scanner", error);
       closeCameraScanner();
-      showToast(error?.name === "NotAllowedError"
-        ? "Camera access was not allowed. Enable camera permission and try again."
-        : error?.message || "No camera was found.");
+      const cameraErrorMessages = {
+        NotAllowedError: "Camera access was not allowed. In Chrome, open Site settings, allow Camera, and try again.",
+        NotFoundError: "No rear camera was found on this device.",
+        NotReadableError: "The camera is busy in another app. Close it there and try again.",
+        OverconstrainedError: "This device does not provide a compatible camera.",
+        SecurityError: "Chrome blocked camera access for this page. Check this site's Camera permission.",
+      };
+      showToast(cameraErrorMessages[error?.name] || error?.message || "The camera could not be started.");
     }
   }
 
