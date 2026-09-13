@@ -20,7 +20,7 @@ supabase link --project-ref dsrafdzgjsogopracizc
 supabase db push --include-all
 ```
 
-For this repository's first migration, either paste `supabase/schema.sql` into **Supabase Dashboard → SQL Editor → New query → Run**, or turn it into a CLI migration:
+You can paste `supabase/schema.sql` into **Supabase Dashboard → SQL Editor → New query → Run**. The schema is rerunnable: it drops and recreates its named RLS policies, avoiding “policy already exists” errors after a partial or previous run. For a CLI migration instead:
 
 ```bash
 supabase init

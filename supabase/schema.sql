@@ -1,4 +1,4 @@
--- Run this once in the Supabase SQL editor or with `supabase db push`.
+-- Safe to run repeatedly in the Supabase SQL editor or with `supabase db push`.
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text unique not null check (username = lower(username)),
@@ -20,6 +20,15 @@ create table if not exists public.books (
 
 alter table public.profiles enable row level security;
 alter table public.books enable row level security;
+
+-- PostgreSQL does not support CREATE POLICY IF NOT EXISTS. Drop each policy first
+-- so this complete schema can also update a database that was partially set up.
+drop policy if exists "Members read their profile" on public.profiles;
+drop policy if exists "Members read their books" on public.books;
+drop policy if exists "Members add their books" on public.books;
+drop policy if exists "Members update their books" on public.books;
+drop policy if exists "Members delete their books" on public.books;
+
 create policy "Members read their profile" on public.profiles for select to authenticated using (id = auth.uid());
 create policy "Members read their books" on public.books for select to authenticated using (user_id = auth.uid());
 create policy "Members add their books" on public.books for insert to authenticated with check (user_id = auth.uid() and username = (select username from public.profiles where id = auth.uid()));
