@@ -62,7 +62,9 @@
       if (profileError || !profile) throw profileError || new Error("Your member profile is missing.");
 
       const name = profile.display_name || profile.username || "reader";
-      $("#member-name").textContent = `Cardholder: ${name}`;
+      $("#member-name").textContent = name;
+      $("#member-name").title = `Signed in as ${name}`;
+      $("#member-avatar").textContent = name.trim().charAt(0).toUpperCase() || "B";
       showLibrary();
       await initializeRenderApplication();
     } catch (error) {
@@ -85,6 +87,7 @@
     }
 
     client = supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+    window.BexsSupabaseClient = client;
 
     $("#login-form").addEventListener("submit", async (event) => {
       event.preventDefault();
