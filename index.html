@@ -57,12 +57,15 @@
                     id="isbnInput"
                     autocomplete="off"
                     inputmode="search"
-                    placeholder="Search title, author, or ISBN"
-                    aria-describedby="scanHelp"
+                    placeholder="Search your shelves, or enter a new ISBN to look it up."
                   />
+                  <button id="cameraScanButton" class="camera-scan-button" type="button" aria-label="Scan an ISBN barcode with your camera" title="Scan barcode">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 8v8M10 8v8M14 8v8M17 8v8" />
+                    </svg>
+                  </button>
                   <button id="scanButton" type="button">Search</button>
                 </div>
-                <span id="scanHelp">Search your shelves, or enter a new ISBN to look it up.</span>
               </div>
               <div class="member-menu">
                 <button id="member-menu-toggle" class="member-menu-toggle" type="button" aria-label="Open account menu" aria-haspopup="true" aria-expanded="false">
@@ -218,6 +221,23 @@
             </div>
           </div>
         </template>
+
+        <div id="cameraScannerModal" class="camera-scanner-modal" role="dialog" aria-modal="true" aria-labelledby="cameraScannerTitle" hidden>
+          <div class="camera-scanner-window">
+            <div class="camera-scanner-heading">
+              <div>
+                <p class="eyebrow">Barcode scanner</p>
+                <h2 id="cameraScannerTitle">Hold the ISBN inside the frame</h2>
+              </div>
+              <button id="closeCameraScanner" type="button" aria-label="Close barcode scanner">×</button>
+            </div>
+            <div class="camera-preview">
+              <video id="cameraScannerVideo" autoplay muted playsinline></video>
+              <div class="barcode-guide" aria-hidden="true"></div>
+            </div>
+            <p id="cameraScannerStatus" class="camera-scanner-status" role="status">Starting camera…</p>
+          </div>
+        </div>
 
         <section id="exploreMode" class="explore-mode" aria-hidden="true">
           <canvas id="exploreCanvas" aria-label="Full screen 3D library"></canvas>

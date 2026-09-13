@@ -8,6 +8,11 @@
   const elements = {
     isbnInput: document.querySelector("#isbnInput"),
     scanButton: document.querySelector("#scanButton"),
+    cameraScanButton: document.querySelector("#cameraScanButton"),
+    cameraScannerModal: document.querySelector("#cameraScannerModal"),
+    cameraScannerVideo: document.querySelector("#cameraScannerVideo"),
+    cameraScannerStatus: document.querySelector("#cameraScannerStatus"),
+    closeCameraScanner: document.querySelector("#closeCameraScanner"),
     statusFilter: document.querySelector("#statusFilter"),
     sortBooks: document.querySelector("#sortBooks"),
     returnLibrary: document.querySelector("#returnLibrary"),
@@ -35,6 +40,8 @@
   let activeBook = null;
   let toastTimer = null;
   let translateTimer = null;
+  let cameraStream = null;
+  let barcodeScanFrame = null;
   const translationCache = new Map();
   const textOriginals = new WeakMap();
   const attrOriginals = new WeakMap();
@@ -281,6 +288,64 @@
   function setLookupBusy(isBusy) {
     elements.scanButton.disabled = isBusy;
     elements.scanButton.textContent = isBusy ? "Looking..." : "Search";
+  }
+
+  async function openCameraScanner() {
+    if (!navigator.mediaDevices?.getUserMedia || !("BarcodeDetector" in window)) {
+      showToast("Barcode scanning is not supported by this browser. You can still type the ISBN.");
+      return;
+    }
+
+    elements.cameraScannerModal.hidden = false;
+    elements.cameraScannerStatus.textContent = "Starting camera…";
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      elements.cameraScannerVideo.srcObject = cameraStream;
+      await elements.cameraScannerVideo.play();
+      const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
+      const formats = ["ean_13", "ean_8"].filter((format) => supportedFormats.includes(format));
+      if (!formats.length) throw new Error("This browser cannot read ISBN barcodes.");
+      const detector = new window.BarcodeDetector({ formats });
+      elements.cameraScannerStatus.textContent = "Looking for an ISBN barcode…";
+      detectBarcode(detector);
+    } catch (error) {
+      console.error("Could not start barcode scanner", error);
+      closeCameraScanner();
+      showToast(error?.name === "NotAllowedError"
+        ? "Camera access was not allowed. You can still type the ISBN."
+        : error?.message || "No camera was found.");
+    }
+  }
+
+  async function detectBarcode(detector) {
+    if (!cameraStream) return;
+    try {
+      const barcodes = await detector.detect(elements.cameraScannerVideo);
+      const match = barcodes.find(({ rawValue }) => /^(978|979)\d{10}$/.test(normalizeIsbn(rawValue)));
+      if (match) {
+        elements.isbnInput.value = normalizeIsbn(match.rawValue);
+        closeCameraScanner();
+        showToast("ISBN scanned. Looking up your book…");
+        await submitSearch();
+        return;
+      }
+    } catch (_error) {
+      // A video frame can be unavailable while the camera is warming up; keep scanning.
+    }
+    barcodeScanFrame = window.requestAnimationFrame(() => detectBarcode(detector));
+  }
+
+  function closeCameraScanner() {
+    if (barcodeScanFrame) window.cancelAnimationFrame(barcodeScanFrame);
+    barcodeScanFrame = null;
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    cameraStream = null;
+    elements.cameraScannerVideo.srcObject = null;
+    elements.cameraScannerModal.hidden = true;
+    elements.cameraScanButton.focus();
   }
 
   async function fetchBookData(isbn) {
@@ -1168,6 +1233,11 @@
   };
 
   elements.scanButton.addEventListener("click", submitSearch);
+  elements.cameraScanButton.addEventListener("click", openCameraScanner);
+  elements.closeCameraScanner.addEventListener("click", closeCameraScanner);
+  elements.cameraScannerModal.addEventListener("click", (event) => {
+    if (event.target === elements.cameraScannerModal) closeCameraScanner();
+  });
   elements.isbnInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -1193,11 +1263,18 @@
     scheduleTranslatePage();
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !elements.cameraScannerModal.hidden) {
+      closeCameraScanner();
+      return;
+    }
     if (event.key === "Escape" && document.body.classList.contains("show-book")) showLibrary();
     if (event.key === "/" && document.activeElement === document.body) {
       event.preventDefault();
       elements.isbnInput.focus();
     }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && cameraStream) closeCameraScanner();
   });
 
   render();
