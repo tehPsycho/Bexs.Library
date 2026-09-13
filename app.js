@@ -13,6 +13,8 @@
     cameraScannerVideo: document.querySelector("#cameraScannerVideo"),
     cameraScannerStatus: document.querySelector("#cameraScannerStatus"),
     closeCameraScanner: document.querySelector("#closeCameraScanner"),
+    mobileFilterToggle: document.querySelector("#mobileFilterToggle"),
+    bookToolbar: document.querySelector("#bookToolbar"),
     statusFilter: document.querySelector("#statusFilter"),
     sortBooks: document.querySelector("#sortBooks"),
     returnLibrary: document.querySelector("#returnLibrary"),
@@ -42,6 +44,7 @@
   let translateTimer = null;
   let cameraStream = null;
   let barcodeScanFrame = null;
+  let fallbackScannerControls = null;
   const translationCache = new Map();
   const textOriginals = new WeakMap();
   const attrOriginals = new WeakMap();
@@ -291,33 +294,61 @@
   }
 
   async function openCameraScanner() {
-    if (!navigator.mediaDevices?.getUserMedia || !("BarcodeDetector" in window)) {
-      showToast("Barcode scanning is not supported by this browser. You can still type the ISBN.");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showToast("Camera access is unavailable. Check that this page is open over HTTPS.");
       return;
     }
 
     elements.cameraScannerModal.hidden = false;
     elements.cameraScannerStatus.textContent = "Starting camera…";
     try {
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
-      elements.cameraScannerVideo.srcObject = cameraStream;
-      await elements.cameraScannerVideo.play();
-      const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
-      const formats = ["ean_13", "ean_8"].filter((format) => supportedFormats.includes(format));
-      if (!formats.length) throw new Error("This browser cannot read ISBN barcodes.");
-      const detector = new window.BarcodeDetector({ formats });
-      elements.cameraScannerStatus.textContent = "Looking for an ISBN barcode…";
-      detectBarcode(detector);
+      if ("BarcodeDetector" in window) {
+        const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
+        const formats = ["ean_13", "ean_8"].filter((format) => supportedFormats.includes(format));
+        if (formats.length) {
+          await startNativeBarcodeScanner(formats);
+          return;
+        }
+      }
+
+      await startFallbackBarcodeScanner();
     } catch (error) {
       console.error("Could not start barcode scanner", error);
       closeCameraScanner();
       showToast(error?.name === "NotAllowedError"
-        ? "Camera access was not allowed. You can still type the ISBN."
+        ? "Camera access was not allowed. Enable camera permission and try again."
         : error?.message || "No camera was found.");
     }
+  }
+
+  async function startNativeBarcodeScanner(formats) {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+    elements.cameraScannerVideo.srcObject = cameraStream;
+    await elements.cameraScannerVideo.play();
+    const detector = new window.BarcodeDetector({ formats });
+    elements.cameraScannerStatus.textContent = "Looking for an ISBN barcode…";
+    detectBarcode(detector);
+  }
+
+  async function startFallbackBarcodeScanner() {
+    if (!window.ZXingBrowser?.BrowserMultiFormatReader) {
+      throw new Error("The barcode scanner could not load. Check your connection and try again.");
+    }
+
+    const reader = new window.ZXingBrowser.BrowserMultiFormatReader();
+    fallbackScannerControls = await reader.decodeFromConstraints(
+      { video: { facingMode: { ideal: "environment" } }, audio: false },
+      elements.cameraScannerVideo,
+      (result) => {
+        const isbn = normalizeIsbn(result?.getText?.() || result?.text || "");
+        if (/^(978|979)\d{10}$/.test(isbn)) completeBarcodeScan(isbn);
+      },
+    );
+    cameraStream = elements.cameraScannerVideo.srcObject;
+    elements.cameraScannerStatus.textContent = "Looking for an ISBN barcode…";
   }
 
   async function detectBarcode(detector) {
@@ -326,10 +357,7 @@
       const barcodes = await detector.detect(elements.cameraScannerVideo);
       const match = barcodes.find(({ rawValue }) => /^(978|979)\d{10}$/.test(normalizeIsbn(rawValue)));
       if (match) {
-        elements.isbnInput.value = normalizeIsbn(match.rawValue);
-        closeCameraScanner();
-        showToast("ISBN scanned. Looking up your book…");
-        await submitSearch();
+        await completeBarcodeScan(normalizeIsbn(match.rawValue));
         return;
       }
     } catch (_error) {
@@ -338,9 +366,18 @@
     barcodeScanFrame = window.requestAnimationFrame(() => detectBarcode(detector));
   }
 
+  async function completeBarcodeScan(isbn) {
+    elements.isbnInput.value = isbn;
+    closeCameraScanner();
+    showToast("ISBN scanned. Looking up your book…");
+    await submitSearch();
+  }
+
   function closeCameraScanner() {
     if (barcodeScanFrame) window.cancelAnimationFrame(barcodeScanFrame);
     barcodeScanFrame = null;
+    fallbackScannerControls?.stop();
+    fallbackScannerControls = null;
     cameraStream?.getTracks().forEach((track) => track.stop());
     cameraStream = null;
     elements.cameraScannerVideo.srcObject = null;
@@ -1249,6 +1286,23 @@
   });
   elements.statusFilter.addEventListener("change", renderBooks);
   elements.sortBooks.addEventListener("change", renderBooks);
+  elements.mobileFilterToggle.addEventListener("click", () => {
+    const isOpen = elements.mobileFilterToggle.getAttribute("aria-expanded") === "true";
+    elements.mobileFilterToggle.setAttribute("aria-expanded", String(!isOpen));
+    elements.bookToolbar.classList.toggle("open", !isOpen);
+  });
+  elements.bookToolbar.addEventListener("change", () => {
+    if (window.matchMedia("(max-width: 640px)").matches) {
+      elements.mobileFilterToggle.setAttribute("aria-expanded", "false");
+      elements.bookToolbar.classList.remove("open");
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (!elements.bookToolbar.contains(event.target) && !elements.mobileFilterToggle.contains(event.target)) {
+      elements.mobileFilterToggle.setAttribute("aria-expanded", "false");
+      elements.bookToolbar.classList.remove("open");
+    }
+  });
   elements.returnLibrary.addEventListener("click", showLibrary);
   elements.exploreLibrary.addEventListener("click", startExplore);
   elements.exploreMain.addEventListener("click", startExplore);
@@ -1263,6 +1317,12 @@
     scheduleTranslatePage();
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && elements.bookToolbar.classList.contains("open")) {
+      elements.mobileFilterToggle.setAttribute("aria-expanded", "false");
+      elements.bookToolbar.classList.remove("open");
+      elements.mobileFilterToggle.focus();
+      return;
+    }
     if (event.key === "Escape" && !elements.cameraScannerModal.hidden) {
       closeCameraScanner();
       return;

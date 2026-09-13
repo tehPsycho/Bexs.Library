@@ -122,13 +122,20 @@
 
                 <section class="shelf-section" aria-labelledby="shelfTitle">
                   <div class="section-heading">
-                    <div>
+                    <div class="shelf-title-block">
                       <p class="eyebrow">Shelves</p>
-                      <h2 id="shelfTitle">Your books</h2>
+                      <div class="shelf-title-row">
+                        <h2 id="shelfTitle">Your books</h2>
+                        <button id="mobileFilterToggle" class="mobile-filter-toggle" type="button" aria-label="Open book filters and sorting" aria-controls="bookToolbar" aria-expanded="false">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 6h16M7 12h10M10 18h4" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <div class="shelf-controls">
                       <p id="resultCount">No books yet</p>
-                      <div class="toolbar" aria-label="Library controls">
+                      <div id="bookToolbar" class="toolbar" aria-label="Library controls">
                         <select id="statusFilter" aria-label="Filter by reading status">
                           <option value="all">All books</option>
                           <option value="unread">Unread</option>
@@ -310,6 +317,7 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
     <script src="config.js"></script>
     <script src="book-metadata.js"></script>
     <script src="script.js"></script>
