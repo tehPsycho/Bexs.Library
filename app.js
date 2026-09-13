@@ -1,9 +1,6 @@
 (function () {
-  const { deserializeBook } = window.BexsBookMetadata;
   const STORAGE_KEY = "beccas-library:v1";
   const SETTINGS_KEY = "beccas-library:settings";
-  const config = window.BEXS_CONFIG;
-  const supabaseClient = window.supabase?.createClient(config?.supabaseUrl, config?.supabasePublishableKey);
   const elements = {
     isbnInput: document.querySelector("#isbnInput"),
     scanButton: document.querySelector("#scanButton"),
@@ -29,9 +26,8 @@
   };
 
   const legacySizeProfiles = ["slim", "standard", "tall", "wide", "chunky"];
-  let library = [];
+  let library = loadLibrary();
   let settings = loadSettings();
-  let currentProfile = null;
   let activeBook = null;
   let toastTimer = null;
   let translateTimer = null;
@@ -46,8 +42,7 @@
       if (!Array.isArray(saved)) return [];
       let changed = false;
       const hydrated = saved.map((book, index) => {
-        const normalized = deserializeBook(book);
-        const next = hydrateBookRender({ ...book, ...normalized }, index);
+        const next = hydrateBookRender(book, index);
         if (next !== book) changed = true;
         return next;
       });
@@ -58,63 +53,8 @@
     }
   }
 
-  const booksRepository = {
-    async list() {
-      const { data, error } = await supabaseClient.from("books").select("*").order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data || []).map(rowToRenderBook);
-    },
-    async insert(book) {
-      const payload = { username: currentProfile.username, title: book.title, author: (book.authors || []).join(", ") || "Unknown author", metadata: renderBookToMetadata(book) };
-      const { data, error } = await supabaseClient.from("books").insert(payload).select().single();
-      if (error) throw error;
-      return rowToRenderBook(data);
-    },
-    async update(book) {
-      const payload = { title: book.title, author: (book.authors || []).join(", ") || "Unknown author", metadata: renderBookToMetadata(book), updated_at: new Date().toISOString() };
-      const { data, error } = await supabaseClient.from("books").update(payload).eq("id", book.id).select().single();
-      if (error) throw error;
-      return rowToRenderBook(data);
-    },
-    async remove(id) {
-      const { error } = await supabaseClient.from("books").delete().eq("id", id);
-      if (error) throw error;
-    },
-  };
-
-  function reportDatabaseError(action, error) {
-    console.error(`Could not ${action}`, error);
-    showToast(`Could not ${action}. ${error?.message || "Please try again."}`);
-  }
-
-  async function initializeLibrary() {
-    if (!supabaseClient) {
-      reportDatabaseError("connect to the library", new Error("Supabase configuration is unavailable."));
-      return false;
-    }
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-    if (sessionError || !session?.user) {
-      reportDatabaseError("open your library", sessionError || new Error("Please sign in first."));
-      return false;
-    }
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("username")
-      .eq("id", session.user.id)
-      .single();
-    if (profileError || !profile?.username) {
-      reportDatabaseError("load your profile", profileError || new Error("Your profile has no username."));
-      return false;
-    }
-    currentProfile = profile;
-    try {
-      library = await booksRepository.list();
-      render();
-      return true;
-    } catch (error) {
-      reportDatabaseError("retrieve your shelf", error);
-      return false;
-    }
+  function saveLibrary() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
   }
 
   function loadSettings() {
@@ -492,9 +432,16 @@
     const translated = await Promise.all(
       targets.map(async (book) => ({ book, synopsis: await findEnglishSynopsis(book) })),
     );
-    const changes = translated.filter(({ synopsis }) => Boolean(synopsis));
-    if (changes.length) {
-      await Promise.all(changes.map(({ book, synopsis }) => updateBook(book.id, { synopsis, translatedSynopsis: true })));
+    let changed = false;
+    translated.forEach(({ book, synopsis }) => {
+      if (!synopsis) return;
+      book.synopsis = synopsis;
+      book.translatedSynopsis = true;
+      changed = true;
+    });
+    if (changed) {
+      saveLibrary();
+      render();
       if (activeBook) openBook(library.find((book) => book.id === activeBook.id) || activeBook, "From your shelves");
       showToast("Saved summaries updated.");
     }
@@ -648,24 +595,18 @@
     return textarea.value;
   }
 
-  async function addBook(book) {
-    const savedBook = await addBookToLibrary(book);
-    if (!savedBook) return;
+  function addBook(book) {
+    const savedBook = addBookToLibrary(book);
     openBook(savedBook, "Added to your library");
     showToast(`${savedBook.title} was added.`);
   }
 
-  async function addBookToLibrary(book) {
+  function addBookToLibrary(book) {
     const savedBook = hydrateBookRender({ ...book, shelfSlot: book.shelfSlot ?? firstAvailableShelfSlot(), addedAt: new Date().toISOString() }, library.length);
-    try {
-      const inserted = await booksRepository.insert(savedBook);
-      library = [...library, inserted];
-      render();
-      return inserted;
-    } catch (error) {
-      reportDatabaseError("add this book", error);
-      return null;
-    }
+    library.unshift(savedBook);
+    saveLibrary();
+    render();
+    return savedBook;
   }
 
   function hydrateBookRender(book, index = 0) {
@@ -734,32 +675,20 @@
     return library.length;
   }
 
-  async function updateBook(bookId, changes) {
-    const existing = library.find((book) => book.id === bookId);
-    if (!existing) return null;
-    try {
-      const saved = await booksRepository.update({ ...existing, ...changes });
-      library = library.map((book) => (book.id === bookId ? saved : book));
-      render();
-      activeBook = library.find((book) => book.id === bookId) || activeBook;
-      return saved;
-    } catch (error) {
-      reportDatabaseError("save this book", error);
-      return null;
-    }
+  function updateBook(bookId, changes) {
+    library = library.map((book) => (book.id === bookId ? { ...book, ...changes } : book));
+    saveLibrary();
+    render();
+    activeBook = library.find((book) => book.id === bookId) || activeBook;
   }
 
-  async function removeBook(bookId) {
+  function removeBook(bookId) {
     const book = library.find((item) => item.id === bookId);
-    try {
-      await booksRepository.remove(bookId);
-      library = library.filter((item) => item.id !== bookId);
-      showLibrary();
-      render();
-      showToast(book ? `${book.title} was removed.` : "Book removed.");
-    } catch (error) {
-      reportDatabaseError("remove this book", error);
-    }
+    library = library.filter((item) => item.id !== bookId);
+    saveLibrary();
+    showLibrary();
+    render();
+    showToast(book ? `${book.title} was removed.` : "Book removed.");
   }
 
   function render() {
@@ -917,7 +846,7 @@
     const updatedBook = { ...book, synopsis: english, translatedSynopsis: true };
     synopsisEl.textContent = english;
     if (isInLibrary) {
-      await updateBook(book.id, { synopsis: english, translatedSynopsis: true });
+      updateBook(book.id, { synopsis: english, translatedSynopsis: true });
       if (activeBook?.id === book.id) activeBook = library.find((item) => item.id === book.id) || updatedBook;
       if (window.BeccasRoom) window.BeccasRoom.render(library);
     } else {
@@ -980,21 +909,18 @@
     const list = section.querySelector(".cover-choice-list");
     const upload = section.querySelector(".cover-upload input");
 
-    async function selectCover(url, button = null) {
-      const coverOptions = unique([url, ...covers]);
-      if (options.isInLibrary) {
-        const saved = await updateBook(book.id, { coverUrl: url, coverOptions });
-        if (!saved) return;
-        book = saved;
-      } else {
-        book.coverUrl = url;
-        book.coverOptions = coverOptions;
-      }
+    function selectCover(url, button = null) {
+      book.coverUrl = url;
+      book.coverOptions = unique([url, ...covers]);
       options.cover.src = url;
       options.cover.style.display = "";
       options.coverFallback.style.display = "none";
       list.querySelectorAll(".cover-choice").forEach((choice) => choice.classList.remove("selected"));
       if (button) button.classList.add("selected");
+      if (options.isInLibrary) {
+        updateBook(book.id, { coverUrl: url, coverOptions: book.coverOptions });
+        if (window.BeccasRoom) window.BeccasRoom.render(library);
+      }
       showToast("Cover updated.");
     }
 
@@ -1050,18 +976,17 @@
 
     ratingInput.addEventListener("input", updateRatingText);
 
-    form.addEventListener("submit", async (event) => {
+    form.addEventListener("submit", (event) => {
       event.preventDefault();
-      const saved = await updateBook(book.id, {
+      updateBook(book.id, {
         isRead: readInput.checked || Boolean(finishedDate.value),
         finishedDate: finishedDate.value,
         startedDate: startedDate.value,
         rating: Number(ratingInput.value),
         review: form.elements.review.value.trim(),
       });
-      if (!saved) return;
       showToast("Book notes saved.");
-      openBook(saved, "Saved in your library");
+      openBook(library.find((item) => item.id === book.id), "Saved in your library");
     });
 
     removeButton.addEventListener("click", () => removeBook(book.id));
@@ -1091,6 +1016,7 @@
   }
 
   function showLibrary() {
+    if (document.body.classList.contains("exploring")) exitExplore();
     document.body.classList.remove("show-book");
     elements.returnLibrary.classList.add("active");
     activeBook = null;
@@ -1121,8 +1047,7 @@
 
     const book = await fetchBookData(isbn);
     if (!book) throw new Error("I could not find that ISBN.");
-    const savedBook = await addBookToLibrary(book);
-    if (!savedBook) throw new Error("The book could not be saved.");
+    const savedBook = addBookToLibrary(book);
     showToast(`${savedBook.title} was added.`);
     return { book: savedBook, isNew: true };
   }
@@ -1137,33 +1062,28 @@
       return settings.language;
     },
     translateInterfaceText,
-    async updateBookNotes(bookId, changes) {
-      return updateBook(bookId, changes);
+    updateBookNotes(bookId, changes) {
+      updateBook(bookId, changes);
+      return library.find((item) => item.id === bookId);
     },
-    async updateBookRender(bookId, changes) {
+    updateBookRender(bookId, changes) {
       const book = library.find((item) => item.id === bookId);
       if (!book) return null;
-      return updateBook(bookId, { render: { ...(book.render || {}), ...changes } });
+      updateBook(bookId, { render: { ...(book.render || {}), ...changes } });
+      return library.find((item) => item.id === bookId);
     },
-    async moveBookToIndex(bookId, index) {
+    moveBookToIndex(bookId, index) {
       const current = library.findIndex((book) => book.id === bookId);
       if (current < 0) return library.slice();
-      const reordered = library.slice();
-      const [book] = reordered.splice(current, 1);
-      const target = Math.max(0, Math.min(index, reordered.length));
-      reordered.splice(target, 0, book);
-      try {
-        const saved = await Promise.all(reordered.map((item, shelfSlot) => booksRepository.update({ ...item, shelfSlot })));
-        library = saved;
-        render();
-      } catch (error) {
-        reportDatabaseError("reorder the shelf", error);
-        await initializeLibrary();
-      }
+      const [book] = library.splice(current, 1);
+      const target = Math.max(0, Math.min(index, library.length));
+      library.splice(target, 0, book);
+      saveLibrary();
+      render();
       return library.slice();
     },
-    async moveBookToSlot(bookId, slot) {
-      await updateBook(bookId, { shelfSlot: slot });
+    moveBookToSlot(bookId, slot) {
+      updateBook(bookId, { shelfSlot: slot });
       return library.slice();
     },
     openBookById(bookId, kicker = "From the shelf") {
@@ -1208,8 +1128,6 @@
 
   render();
   elements.isbnInput.focus();
-  initializeLibrary().then((loaded) => {
-    if (loaded) window.setTimeout(() => translateSavedBooks(), 350);
-    window.setTimeout(() => scheduleTranslatePage(), 500);
-  });
+  window.setTimeout(() => translateSavedBooks(), 350);
+  window.setTimeout(() => scheduleTranslatePage(), 500);
 })();
