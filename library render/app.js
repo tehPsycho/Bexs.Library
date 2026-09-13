@@ -1,4 +1,6 @@
 (function () {
+  const { deserializeBook } = window.BexsBookMetadata;
+  const STORAGE_KEY = "beccas-library:v1";
   const SETTINGS_KEY = "beccas-library:settings";
   const config = window.BEXS_CONFIG;
   const supabaseClient = window.supabase?.createClient(config?.supabaseUrl, config?.supabasePublishableKey);
@@ -38,61 +40,22 @@
   const attrOriginals = new WeakMap();
   const isVerifyMode = localStorage.getItem("beccas-library:verify") === "1";
 
-  // This is the single boundary between public.books and the model consumed by
-  // renderBooks() and room.js. Everything except the core catalogue columns is
-  // deliberately kept in metadata so shelf/render customizations survive reloads.
-  function rowToRenderBook(row, index = 0) {
-    const metadata = row.metadata || {};
-    return hydrateBookRender({
-      id: row.id,
-      title: row.title,
-      authors: String(row.author || "").split(/\s*,\s*/).filter(Boolean),
-      isbn: metadata.isbn || "",
-      isbns: Array.isArray(metadata.isbns) ? metadata.isbns : [metadata.isbn].filter(Boolean),
-      coverUrl: metadata.cover_url || "",
-      isRead: typeof metadata.is_read === "boolean" ? metadata.is_read : metadata.status === "read",
-      rating: Number(metadata.rating) || 0,
-      review: metadata.review || "",
-      startedDate: metadata.started_date || "",
-      finishedDate: metadata.finished_date || "",
-      subtitle: metadata.subtitle || "",
-      publishers: metadata.publishers || [],
-      publishedDate: metadata.published_date || "",
-      pageCount: metadata.page_count ?? null,
-      subjects: metadata.subjects || [],
-      synopsis: metadata.synopsis || "",
-      source: metadata.source || "",
-      coverOptions: metadata.cover_options || [],
-      translatedSynopsis: Boolean(metadata.translated_synopsis),
-      shelfSlot: Number.isInteger(metadata.shelf_slot) ? metadata.shelf_slot : index,
-      render: metadata.render || {},
-      addedAt: row.created_at,
-    }, index);
-  }
-
-  function renderBookToMetadata(book) {
-    return {
-      isbn: book.isbn || "",
-      isbns: book.isbns || [],
-      cover_url: book.coverUrl || "",
-      status: book.isRead ? "read" : "unread",
-      is_read: Boolean(book.isRead),
-      rating: Number(book.rating) || 0,
-      review: book.review || "",
-      started_date: book.startedDate || "",
-      finished_date: book.finishedDate || "",
-      subtitle: book.subtitle || "",
-      publishers: book.publishers || [],
-      published_date: book.publishedDate || "",
-      page_count: book.pageCount ?? null,
-      subjects: book.subjects || [],
-      synopsis: book.synopsis || "",
-      source: book.source || "",
-      cover_options: book.coverOptions || [],
-      translated_synopsis: Boolean(book.translatedSynopsis),
-      shelf_slot: book.shelfSlot,
-      render: book.render || {},
-    };
+  function loadLibrary() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (!Array.isArray(saved)) return [];
+      let changed = false;
+      const hydrated = saved.map((book, index) => {
+        const normalized = deserializeBook(book);
+        const next = hydrateBookRender({ ...book, ...normalized }, index);
+        if (next !== book) changed = true;
+        return next;
+      });
+      if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(hydrated));
+      return hydrated;
+    } catch (_error) {
+      return [];
+    }
   }
 
   const booksRepository = {

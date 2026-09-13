@@ -18,6 +18,29 @@ create table if not exists public.books (
   updated_at timestamptz not null default now()
 );
 
+-- Stable application contract for books.metadata (JSON property names are
+-- case-sensitive). title and author deliberately remain searchable columns;
+-- metadata.authors is the ordered, lossless author list and author is its
+-- comma-separated display value. The application writes every key below, even
+-- when its value is the documented empty default:
+--   subtitle text = ''                 authors text[] = []
+--   isbns text[] = []                  publishers text[] = []
+--   publishedDate text = ''            pageCount number|null = null
+--   subjects text[] = []               synopsis text = ''
+--   cover_url text = ''                coverOptions text[] = []
+--   source text = ''                   isRead boolean = false
+--   startedDate text = ''              finishedDate text = ''
+--   rating number (0..5) = 0           review text = ''
+--   shelfSlot integer|null = null       render object = {}
+--   addedAt text = ''                   translatedSynopsis boolean = false
+-- Dates are ISO-8601 date strings when present. `render` contains renderer
+-- preferences (dimensions, colors, and size/thickness categories) and is
+-- intentionally extensible. Readers normalize missing/invalid values to these
+-- defaults. Legacy `isbn` and `status` keys are read for compatibility; notably
+-- status = 'Read' becomes isRead = true, but new writes use isbns and isRead.
+comment on column public.books.metadata is
+  'Stable Bexs Library book details contract. Keys: subtitle text; authors text[]; isbns text[]; publishers text[]; publishedDate text; pageCount number|null; subjects text[]; synopsis text; cover_url text; coverOptions text[]; source text; isRead boolean; startedDate text; finishedDate text; rating number 0..5; review text; shelfSlot integer|null; render object; addedAt text; translatedSynopsis boolean. Missing keys use application defaults. Legacy status/isbn are read-only compatibility aliases.';
+
 alter table public.profiles enable row level security;
 alter table public.books enable row level security;
 
