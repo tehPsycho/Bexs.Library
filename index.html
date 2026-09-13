@@ -61,6 +61,12 @@
             <button class="primary-button" id="show-add-book" type="button">＋ Add a book</button>
           </section>
           <section class="book-grid" id="book-grid" aria-live="polite"></section>
+          <section class="load-error" id="load-error" role="alert" hidden>
+            <span aria-hidden="true">!</span>
+            <h3>We couldn't open your shelves.</h3>
+            <p id="load-error-message">Your library is still safe. Please try loading it again.</p>
+            <button class="primary-button" id="retry-library" type="button">Try again</button>
+          </section>
           <div class="empty-state" id="empty-state" hidden><span>✦</span><h3>Your shelf has room.</h3><p>Add the first book to begin your private collection.</p></div>
         </div>
 
