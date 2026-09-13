@@ -5,6 +5,37 @@
   let renderAppPromise = null;
   let openingLibrary = false;
 
+  const setMessage = (element, message, type = "") => {
+    element.className = `form-message${type ? ` ${type}` : ""}`;
+    element.textContent = message;
+  };
+
+  const authModal = () => $("#auth-modal");
+  const showAuthModal = (mode, email = "") => {
+    const content = {
+      signup: ["Membership desk", "Request a library card", "Create your account, then follow the confirmation link we send to your email before signing in."],
+      reset: ["Member help", "Reset your password", "Enter your member email and we’ll send you a secure link to choose a new password."],
+      update: ["Member help", "Choose a new password", "Enter and confirm the new password for your library account."],
+    }[mode];
+    $("#auth-modal-eyebrow").textContent = content[0];
+    $("#auth-modal-title").textContent = content[1];
+    $("#auth-modal-description").textContent = content[2];
+    ["signup", "reset-request", "update-password"].forEach((name) => {
+      $(`#${name}-form`).hidden = name !== (mode === "reset" ? "reset-request" : mode === "update" ? "update-password" : "signup");
+    });
+    setMessage($("#auth-modal-message"), "");
+    if (mode === "signup") $("#signup-email").value = email;
+    if (mode === "reset") $("#reset-email").value = email;
+    authModal().hidden = false;
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(() => authModal().querySelector("input")?.focus());
+  };
+
+  const closeAuthModal = () => {
+    authModal().hidden = true;
+    document.body.style.overflow = "";
+  };
+
   const showLogin = (message = "") => {
     document.body.classList.remove("auth-loading", "exploring", "show-book");
     $("#app-view").hidden = true;
@@ -111,6 +142,70 @@
       await openLibrary();
     });
 
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    $("#request-card").addEventListener("click", () => showAuthModal("signup", $("#email").value.trim()));
+    $("#forgot-password").addEventListener("click", () => showAuthModal("reset", $("#email").value.trim()));
+    $("#close-auth-modal").addEventListener("click", closeAuthModal);
+    authModal().addEventListener("click", (event) => {
+      if (event.target === authModal()) closeAuthModal();
+    });
+
+    $("#signup-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const email = $("#signup-email").value.trim().toLowerCase();
+      const password = $("#signup-password").value;
+      if (password !== $("#signup-confirm-password").value) {
+        setMessage($("#auth-modal-message"), "Passwords do not match.", "error");
+        return;
+      }
+      setMessage($("#auth-modal-message"), "Requesting your card…");
+      const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+      if (error) {
+        setMessage($("#auth-modal-message"), error.message || "We could not create your account.", "error");
+        return;
+      }
+      if (data.session) await client.auth.signOut();
+      event.currentTarget.reset();
+      setMessage($("#auth-modal-message"), "Check your inbox and confirm your email before signing in.", "success");
+    });
+
+    $("#reset-request-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const email = $("#reset-email").value.trim().toLowerCase();
+      setMessage($("#auth-modal-message"), "Sending your reset link…");
+      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+      setMessage($("#auth-modal-message"), error ? (error.message || "We could not send the reset email.") : "If that email belongs to a member, a reset link is on its way.", error ? "error" : "success");
+    });
+
+    $("#update-password-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const password = $("#new-password").value;
+      if (password !== $("#confirm-new-password").value) {
+        setMessage($("#auth-modal-message"), "Passwords do not match.", "error");
+        return;
+      }
+      setMessage($("#auth-modal-message"), "Saving your new password…");
+      const { error } = await client.auth.updateUser({ password });
+      if (error) {
+        setMessage($("#auth-modal-message"), error.message || "We could not update your password.", "error");
+        return;
+      }
+      event.currentTarget.reset();
+      setMessage($("#auth-modal-message"), "Password updated. You can continue to your library.", "success");
+    });
+
+    $("#member-reset-password").addEventListener("click", async () => {
+      const { data } = await client.auth.getUser();
+      if (!data.user?.email) return;
+      const { error } = await client.auth.resetPasswordForEmail(data.user.email, { redirectTo });
+      setMenuOpen(false);
+      window.alert(error ? (error.message || "We could not send the reset email.") : `A password reset link was sent to ${data.user.email}.`);
+    });
+
+    client.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") showAuthModal("update");
+    });
+
     $("#sign-out").addEventListener("click", async () => {
       window.BeccasLibrary?.exitExplore();
       showLogin();
@@ -130,6 +225,7 @@
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
+        if (!authModal().hidden) closeAuthModal();
         setMenuOpen(false);
         menuToggle.focus();
       }

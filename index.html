@@ -24,12 +24,6 @@
 
     <main>
       <section class="login-view" id="login-view" hidden>
-        <div class="login-intro">
-          <p class="eyebrow">The private stacks</p>
-          <h1>Every book leaves<br />a little <em>mark.</em></h1>
-          <p>Your personal library, reading notes, and reviews—kept together on one beautifully untidy shelf.</p>
-        </div>
-
         <form class="library-card" id="login-form">
           <div class="card-topline"><span>BEX'S LIBRARY</span><span>MEMBER ACCESS</span></div>
           <div class="card-body">
@@ -49,9 +43,47 @@
           </div>
           <div class="card-stamp">BORROW<br />WILDLY</div>
           <button class="card-submit" id="login-button" type="submit">Open my library <span>→</span></button>
+          <div class="auth-links">
+            <button id="request-card" type="button">Request library card for access!</button>
+            <button id="forgot-password" type="button">Forgot password?</button>
+          </div>
           <p class="form-message" id="login-message" role="alert"></p>
         </form>
       </section>
+
+      <div id="auth-modal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
+        <div class="auth-modal-window">
+          <button id="close-auth-modal" class="auth-modal-close" type="button" aria-label="Close">×</button>
+          <p class="eyebrow" id="auth-modal-eyebrow">Membership desk</p>
+          <h2 id="auth-modal-title">Request a library card</h2>
+          <p id="auth-modal-description" class="auth-modal-description">Create your account, then follow the confirmation link we send to your email before signing in.</p>
+
+          <form id="signup-form" class="auth-form">
+            <label for="signup-email">Email address</label>
+            <input id="signup-email" name="email" type="email" autocomplete="email" required />
+            <label for="signup-password">Password</label>
+            <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+            <label for="signup-confirm-password">Confirm password</label>
+            <input id="signup-confirm-password" name="confirm-password" type="password" autocomplete="new-password" minlength="8" required />
+            <button class="card-submit" type="submit">Request my card <span>→</span></button>
+          </form>
+
+          <form id="reset-request-form" class="auth-form" hidden>
+            <label for="reset-email">Email address</label>
+            <input id="reset-email" name="email" type="email" autocomplete="email" required />
+            <button class="card-submit" type="submit">Send reset email <span>→</span></button>
+          </form>
+
+          <form id="update-password-form" class="auth-form" hidden>
+            <label for="new-password">New password</label>
+            <input id="new-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+            <label for="confirm-new-password">Confirm new password</label>
+            <input id="confirm-new-password" name="confirm-password" type="password" autocomplete="new-password" minlength="8" required />
+            <button class="card-submit" type="submit">Save new password <span>→</span></button>
+          </form>
+          <p class="form-message" id="auth-modal-message" role="alert" aria-live="polite"></p>
+        </div>
+      </div>
 
       <section class="app-view" id="app-view" hidden>
         <div class="app-frame">
@@ -93,6 +125,7 @@
                       <option value="fr">Français</option>
                     </select>
                   </label>
+                  <button id="member-reset-password" class="member-reset-password" type="button">Email me a password reset</button>
                   <button id="sign-out" type="button">Sign out <span aria-hidden="true">→</span></button>
                 </div>
               </div>
