@@ -9,6 +9,13 @@
   const strings = (value) => Array.isArray(value)
     ? value.filter((item) => typeof item === "string").map((item) => item.trim()).filter(Boolean)
     : [];
+  const normalizeCoverUrl = (value) => {
+    const url = text(value).trim();
+    if (/^http:\/\//i.test(url)) return `https://${url.slice(7)}`;
+    if (/^\/\//.test(url)) return `https:${url}`;
+    return url;
+  };
+  const coverUrls = (value) => strings(value).map(normalizeCoverUrl).filter(Boolean);
   const nullableNumber = (value) => value === null || value === "" || !Number.isFinite(Number(value))
     ? null
     : Number(value);
@@ -51,8 +58,8 @@
       pageCount: nullableNumber(metadata.pageCount),
       subjects: strings(metadata.subjects),
       synopsis: text(metadata.synopsis),
-      coverUrl: text(metadata.cover_url, text(metadata.coverUrl)),
-      coverOptions: strings(metadata.coverOptions),
+      coverUrl: normalizeCoverUrl(text(metadata.cover_url, text(metadata.coverUrl))),
+      coverOptions: coverUrls(metadata.coverOptions),
       source: text(metadata.source),
       isRead,
       startedDate: text(metadata.startedDate),
@@ -86,8 +93,8 @@
         pageCount: nullableNumber(book.pageCount),
         subjects: strings(book.subjects),
         synopsis: text(book.synopsis),
-        cover_url: text(book.coverUrl, text(book.cover_url)),
-        coverOptions: strings(book.coverOptions),
+        cover_url: normalizeCoverUrl(text(book.coverUrl, text(book.cover_url))),
+        coverOptions: coverUrls(book.coverOptions),
         source: text(book.source),
         isRead: Boolean(book.isRead),
         startedDate: text(book.startedDate),
@@ -104,5 +111,5 @@
     };
   }
 
-  return { deserializeBook, serializeBook };
+  return { deserializeBook, normalizeCoverUrl, serializeBook };
 });

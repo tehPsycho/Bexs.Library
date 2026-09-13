@@ -141,7 +141,10 @@ legacy aliases.
 
 ## Deployment
 
-This remains a static site and can be published with GitHub Pages. Apply the database schema first, add the deployed origin to Supabase's URL configuration, then deploy the repository root. `CNAME` retains the custom-domain configuration. In the repository's **Settings → Pages**, enable **Enforce HTTPS**; mobile browsers do not expose the camera API to an insecure page.
+This remains a static site and is deployed from the repository root with Cloudflare
+Pages. Apply the database schema first and add the deployed HTTPS origin to
+Supabase's URL configuration. Cloudflare Pages reads `_headers`, whose mixed-content
+policy upgrades any legacy HTTP subresource URL before requesting it.
 
 ## Clean setup and blank-page recovery
 
@@ -226,17 +229,16 @@ Common failures:
   and inspect the first Console error. The checked-in root HTML and JavaScript
   must be deployed together; stale mixed versions have incompatible element IDs.
 
-### 4. Deploy with GitHub Pages and the custom domain
+### 4. Deploy with Cloudflare Pages and the custom domain
 
-1. Push the committed branch to GitHub and merge it into the branch selected in
-   **Repository Settings → Pages**.
-2. Choose **Deploy from a branch**, select the repository root (`/`), and save.
-3. Keep `CNAME` containing `bexslibrary.com`. At the DNS provider, configure the
-   apex records exactly as GitHub Pages documents, and remove conflicting A/AAAA
-   records. If using Cloudflare proxying, temporarily select **DNS only** while
-   GitHub verifies the domain and provisions the certificate.
-4. In GitHub Pages settings, wait for the domain check and TLS certificate, then
-   enable **Enforce HTTPS**. Re-enable any proxy only after HTTPS works directly.
+1. Push the committed branch and let the Cloudflare Pages project deploy the
+   repository root with no build command.
+2. In **Workers & Pages → Custom domains**, verify `bexslibrary.com` is active and
+   points only to the current Pages project; remove stale GitHub Pages DNS records.
+3. In **SSL/TLS → Edge Certificates**, enable **Always Use HTTPS** and verify the
+   edge certificate is active. Use **Full (strict)** mode if an origin is involved.
+4. Confirm the deployed response includes the headers from `_headers`, especially
+   `Content-Security-Policy: upgrade-insecure-requests; block-all-mixed-content`.
 5. Recheck the production URL in a private window and repeat the sign-in,
-   add/refresh, and 3D-room smoke test. Do not use the HTTP version shown in an old
-   bookmark; redirect it to HTTPS once the certificate is active.
+   add/refresh, and 3D-room smoke test. Clear site data first if an older deployment
+   is still present in the browser cache.

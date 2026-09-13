@@ -68,7 +68,7 @@
       avatar.textContent = name.trim().charAt(0).toUpperCase() || "B";
       if (profile.avatar_url) {
         const image = document.createElement("img");
-        image.src = profile.avatar_url;
+        image.src = window.BexsBookMetadata.normalizeCoverUrl(profile.avatar_url);
         image.alt = "";
         image.addEventListener("error", () => image.remove());
         avatar.append(image);
