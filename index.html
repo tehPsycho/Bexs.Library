@@ -30,17 +30,17 @@
               <img id="member-photo" alt="Member portrait" hidden />
             </div>
             <div class="card-fields">
-              <label for="username">Member name</label>
-              <input id="username" name="username" autocomplete="username" spellcheck="false" required />
-              <p class="lookup-status" id="lookup-status" aria-live="polite">Enter your member name to find your card.</p>
-              <div class="password-row" id="password-row" hidden>
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" required />
+              <p class="lookup-status">Enter the full email address associated with your account.</p>
+              <div class="password-row" id="password-row">
                 <label for="password">Password</label>
                 <input id="password" name="password" type="password" autocomplete="current-password" required />
               </div>
             </div>
           </div>
           <div class="card-stamp">BORROW<br />WILDLY</div>
-          <button class="card-submit" id="login-button" type="submit" disabled>Open my library <span>→</span></button>
+          <button class="card-submit" id="login-button" type="submit">Open my library <span>→</span></button>
           <p class="form-message" id="login-message" role="alert"></p>
         </form>
       </section>
