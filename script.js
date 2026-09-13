@@ -11,7 +11,7 @@ const normalizedEmail = (value) => value.trim().toLowerCase();
 const isCurrentUser = (user, generation) => currentUser?.id === user.id && authGeneration === generation;
 
 const showLogin = () => {
-  document.body.classList.remove("auth-loading");
+  document.body.classList.remove("auth-loading", "exploring", "show-book");
   $("#app-view").hidden = true;
   $("#login-view").hidden = false;
 };
