@@ -4,44 +4,15 @@ const client = supabase.createClient(config.supabaseUrl, config.supabasePublisha
 const $ = (selector) => document.querySelector(selector);
 let currentProfile = null;
 let books = [];
-let lookupTimer;
 
-const normalizedUsername = (value) => value.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, "");
-const memberEmail = (username) => `${normalizedUsername(username)}@members.bexslibrary.app`;
-const setLoginState = (found, profile) => {
-  $("#password-row").hidden = !found;
-  $("#login-button").disabled = !found;
-  $("#lookup-status").className = `lookup-status ${found ? "success" : "error"}`;
-  if (found) {
-    $("#lookup-status").textContent = `Card found. Welcome, ${profile.display_name || profile.username}.`;
-    if (profile.avatar_url) { $("#member-photo").src = profile.avatar_url; $("#member-photo").hidden = false; }
-    $("#password").focus();
-  } else {
-    $("#lookup-status").textContent = "No member card found with that name.";
-    $("#member-photo").hidden = true;
-  }
-};
-
-$("#username").addEventListener("input", () => {
-  clearTimeout(lookupTimer);
-  $("#password-row").hidden = true; $("#login-button").disabled = true; $("#member-photo").hidden = true;
-  const username = normalizedUsername($("#username").value);
-  $("#lookup-status").className = "lookup-status";
-  $("#lookup-status").textContent = username.length < 3 ? "Enter your member name to find your card." : "Checking the card catalogue…";
-  if (username.length < 3) return;
-  lookupTimer = setTimeout(async () => {
-    const { data, error } = await client.rpc("preview_member_card", { requested_username: username }).maybeSingle();
-    if (error) { $("#lookup-status").textContent = "The catalogue is unavailable. Try again shortly."; return; }
-    setLoginState(Boolean(data), data);
-  }, 350);
-});
+const normalizedEmail = (value) => value.trim().toLowerCase();
 
 $("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const username = normalizedUsername($("#username").value);
+  const email = normalizedEmail($("#email").value);
   $("#login-message").textContent = "Opening your library…";
-  const { error } = await client.auth.signInWithPassword({ email: memberEmail(username), password: $("#password").value });
-  if (error) { $("#login-message").className = "form-message error"; $("#login-message").textContent = "That password does not match this card."; return; }
+  const { error } = await client.auth.signInWithPassword({ email, password: $("#password").value });
+  if (error) { $("#login-message").className = "form-message error"; $("#login-message").textContent = "That email or password is incorrect."; return; }
   await openLibrary();
 });
 
