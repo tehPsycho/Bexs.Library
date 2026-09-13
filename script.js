@@ -14,28 +14,20 @@ const setLoginState = (found, profile) => {
   $("#lookup-status").className = `lookup-status ${found ? "success" : "error"}`;
   if (found) {
     $("#lookup-status").textContent = `Card found. Welcome, ${profile.display_name || profile.username}.`;
-    if (profile.avatar_url) {
-      $("#member-photo").src = profile.avatar_url;
-      $("#member-photo").hidden = false;
-      $("#portrait-frame").hidden = false;
-      $(".card-art").hidden = true;
-    }
+    if (profile.avatar_url) { $("#member-photo").src = profile.avatar_url; $("#member-photo").hidden = false; }
     $("#password").focus();
   } else {
     $("#lookup-status").textContent = "No member card found with that name.";
     $("#member-photo").hidden = true;
-    $("#portrait-frame").hidden = true;
-    $(".card-art").hidden = false;
   }
 };
 
 $("#username").addEventListener("input", () => {
   clearTimeout(lookupTimer);
   $("#password-row").hidden = true; $("#login-button").disabled = true; $("#member-photo").hidden = true;
-  $("#portrait-frame").hidden = true; $(".card-art").hidden = false;
   const username = normalizedUsername($("#username").value);
   $("#lookup-status").className = "lookup-status";
-  $("#lookup-status").textContent = username.length < 3 ? "Enter your username to find your card." : "Checking the card catalogue…";
+  $("#lookup-status").textContent = username.length < 3 ? "Enter your member name to find your card." : "Checking the card catalogue…";
   if (username.length < 3) return;
   lookupTimer = setTimeout(async () => {
     const { data, error } = await client.rpc("preview_member_card", { requested_username: username }).maybeSingle();
