@@ -1,6 +1,7 @@
 /* global supabase */
 const config = window.BEXS_CONFIG;
 const client = supabase.createClient(config.supabaseUrl, config.supabasePublishableKey);
+const { deserializeBook, serializeBook } = window.BexsBookMetadata;
 const $ = (selector) => document.querySelector(selector);
 let currentProfile = null;
 let books = [];
@@ -42,7 +43,7 @@ const openLibrary = async () => {
 const loadBooks = async () => {
   const { data, error } = await client.from("books").select("*").order("created_at", { ascending: false });
   if (error) { $("#book-count").textContent = "We couldn't retrieve your shelf."; return; }
-  books = data || []; renderBooks();
+  books = (data || []).map(deserializeBook); renderBooks();
 };
 const coverColor = (index) => ["#193d32", "#99472f", "#6a4769", "#785d2e", "#345865"][index % 5];
 const renderBooks = () => {
@@ -52,26 +53,26 @@ const renderBooks = () => {
   books.forEach((book, index) => {
     const node = $("#book-template").content.cloneNode(true); const card = node.querySelector(".book-card");
     card.querySelector(".book-cover").style.background = coverColor(index); card.querySelector(".book-cover span").textContent = book.title.charAt(0);
-    if (book.metadata?.cover_url) { const img = card.querySelector("img"); img.src = book.metadata.cover_url; img.alt = `Cover of ${book.title}`; img.hidden = false; }
-    card.querySelector("h3").textContent = book.title; card.querySelector(".book-author").textContent = book.author;
-    card.querySelector(".book-status").textContent = book.metadata?.status || "Catalogued";
-    card.querySelector(".stars").textContent = book.metadata?.rating ? `${"★".repeat(book.metadata.rating)}${"☆".repeat(5-book.metadata.rating)}` : "Not yet rated";
-    card.querySelector(".book-review").textContent = book.metadata?.review || "No reading notes yet.";
+    if (book.coverUrl) { const img = card.querySelector("img"); img.src = book.coverUrl; img.alt = `Cover of ${book.title}`; img.hidden = false; }
+    card.querySelector("h3").textContent = book.title; card.querySelector(".book-author").textContent = book.authors.join(", ") || "Unknown author";
+    card.querySelector(".book-status").textContent = book.isRead ? "Read" : "Catalogued";
+    card.querySelector(".stars").textContent = book.rating ? `${"★".repeat(Math.round(book.rating))}${"☆".repeat(5-Math.round(book.rating))}` : "Not yet rated";
+    card.querySelector(".book-review").textContent = book.review || "No reading notes yet.";
     card.querySelector(".delete-book").addEventListener("click", () => removeBook(book.id)); grid.append(node);
   });
   renderRoom();
 };
 const renderRoom = () => {
   [$("#shelf-1"), $("#shelf-2"), $("#shelf-3")].forEach((s) => s.innerHTML = "");
-  books.forEach((book, index) => { const spine = document.createElement("div"); spine.className = "shelf-book"; spine.textContent = book.title; spine.title = `${book.title} by ${book.author}`; spine.style.setProperty("--book-color", coverColor(index)); $(`#shelf-${index % 3 + 1}`).append(spine); });
+  books.forEach((book, index) => { const spine = document.createElement("div"); spine.className = "shelf-book"; spine.textContent = book.title; spine.title = `${book.title} by ${book.authors.join(", ") || "Unknown author"}`; spine.style.setProperty("--book-color", coverColor(index)); $(`#shelf-${index % 3 + 1}`).append(spine); });
 };
 const removeBook = async (id) => { if (!window.confirm("Remove this book from your shelf?")) return; const { error } = await client.from("books").delete().eq("id", id); if (!error) { books = books.filter((book) => book.id !== id); renderBooks(); } };
 
 $("#show-add-book").addEventListener("click", () => $("#book-dialog").showModal());
 $("#book-form").addEventListener("submit", async (event) => {
   event.preventDefault(); const values = Object.fromEntries(new FormData(event.currentTarget));
-  const metadata = { status: values.status, rating: values.rating ? Number(values.rating) : null, isbn: values.isbn, cover_url: values.cover_url, review: values.review };
-  const { error } = await client.from("books").insert({ username: currentProfile.username, title: values.title, author: values.author, metadata });
+  const record = serializeBook({ title: values.title, authors: [values.author], isbns: values.isbn ? [values.isbn] : [], coverUrl: values.cover_url, isRead: values.status === "Read", rating: values.rating, review: values.review });
+  const { error } = await client.from("books").insert({ username: currentProfile.username, ...record });
   if (error) { $("#book-message").className = "form-message error"; $("#book-message").textContent = error.message; return; }
   event.currentTarget.reset(); $("#book-dialog").close(); await loadBooks();
 });

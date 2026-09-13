@@ -1,4 +1,5 @@
 (function () {
+  const { deserializeBook } = window.BexsBookMetadata;
   const STORAGE_KEY = "beccas-library:v1";
   const SETTINGS_KEY = "beccas-library:settings";
   const elements = {
@@ -42,7 +43,8 @@
       if (!Array.isArray(saved)) return [];
       let changed = false;
       const hydrated = saved.map((book, index) => {
-        const next = hydrateBookRender(book, index);
+        const normalized = deserializeBook(book);
+        const next = hydrateBookRender({ ...book, ...normalized }, index);
         if (next !== book) changed = true;
         return next;
       });

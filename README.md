@@ -64,9 +64,16 @@ python3 -m http.server 8080
 
 Then open `http://localhost:8080`. The hosted Supabase project must have `http://localhost:8080` and the production URL in **Authentication → URL Configuration → Redirect URLs**.
 
-## Data shape
+## `books.metadata` contract
 
-Each `books` row resembles:
+`books.title` and `books.author` remain top-level columns so catalogue queries can
+search and sort them without inspecting JSON. `author` is the predictable display
+value made by joining the ordered `metadata.authors` array with `, `; the array is
+the canonical representation and preserves multiple authors.
+
+The application treats the following JSONB shape as a stable contract. Writers
+emit every key, including empty values, and readers apply the shown defaults when
+loading older or incomplete rows.
 
 ```json
 {
@@ -75,14 +82,62 @@ Each `books` row resembles:
   "title": "The Left Hand of Darkness",
   "author": "Ursula K. Le Guin",
   "metadata": {
-    "status": "Read",
-    "rating": 5,
-    "isbn": "9780441478125",
+    "subtitle": "",
+    "authors": ["Ursula K. Le Guin"],
+    "isbns": ["9780441478125"],
+    "publishers": ["Ace Books"],
+    "publishedDate": "1987-03-15",
+    "pageCount": 304,
+    "subjects": ["Science fiction"],
+    "synopsis": "An envoy visits the planet Gethen.",
     "cover_url": "https://example.com/cover.jpg",
-    "review": "A lasting favorite."
+    "coverOptions": ["https://example.com/cover.jpg"],
+    "source": "Open Library",
+    "isRead": true,
+    "startedDate": "2026-01-02",
+    "finishedDate": "2026-01-12",
+    "rating": 5,
+    "review": "A lasting favorite.",
+    "shelfSlot": 3,
+    "addedAt": "2026-01-01T12:00:00.000Z",
+    "translatedSynopsis": false,
+    "render": {
+      "spineColor": "#7b2e3b",
+      "pageColor": "#f5ead7",
+      "sizeCategory": "medium",
+      "thicknessCategory": "regular"
+    }
   }
 }
 ```
+
+| Key | Type | Safe default |
+| --- | --- | --- |
+| `subtitle`, `publishedDate`, `synopsis`, `cover_url`, `source`, `startedDate`, `finishedDate`, `review` | string | `""` |
+| `authors`, `isbns`, `publishers`, `subjects`, `coverOptions` | array of strings | `[]` |
+| `pageCount` | number or null | `null` |
+| `isRead` | boolean | `false` |
+| `rating` | number from 0 through 5 | `0` |
+| `shelfSlot` | non-negative integer or null | `null` |
+| `render` | object | `{}` |
+| `addedAt` | ISO-8601 timestamp string | `""` (database rows fall back to `created_at`) |
+| `translatedSynopsis` | boolean | `false` |
+
+Reading dates use ISO-8601 date strings (`YYYY-MM-DD`) when known. `render` is an
+extensible object owned by the 3D renderer and currently holds dimensions,
+spine/page colors, and size/thickness categories. The browser maps database
+`cover_url` to the renderer's `coverUrl` property and derives its primary `isbn`
+from the first member of `isbns`.
+
+### Legacy row normalization
+
+Rows written by the original root `script.js` may contain only `status`,
+`rating`, `isbn`, `cover_url`, and `review`. On read, the application wraps the
+legacy `isbn` in `isbns`, obtains `authors` from the top-level `author`, supplies
+all defaults above, and translates a case-insensitive `status` value of `Read`
+to `isRead: true`. Other legacy status strings remain unread (`false`). New saves
+always use `isRead`, `isbns`, and the complete contract rather than rewriting the
+legacy aliases.
 
 ## Deployment
 
