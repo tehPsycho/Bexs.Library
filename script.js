@@ -7,6 +7,18 @@ let books = [];
 
 const normalizedEmail = (value) => value.trim().toLowerCase();
 
+const showLogin = () => {
+  document.body.classList.remove("auth-loading");
+  $("#app-view").hidden = true;
+  $("#login-view").hidden = false;
+};
+
+const showLibrary = () => {
+  document.body.classList.remove("auth-loading");
+  $("#login-view").hidden = true;
+  $("#app-view").hidden = false;
+};
+
 $("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const email = normalizedEmail($("#email").value);
@@ -18,10 +30,10 @@ $("#login-form").addEventListener("submit", async (event) => {
 
 const openLibrary = async () => {
   const { data: { user } } = await client.auth.getUser();
-  if (!user) return;
+  if (!user) { showLogin(); return; }
+  showLibrary();
   const { data: profile } = await client.from("profiles").select("username, display_name, avatar_url").eq("id", user.id).single();
   currentProfile = profile;
-  $("#login-view").hidden = true; $("#app-view").hidden = false;
   const name = profile?.display_name || profile?.username || "reader";
   $("#member-name").textContent = `Cardholder: ${name}`; $("#welcome-name").textContent = name;
   await loadBooks();
@@ -65,4 +77,7 @@ $("#book-form").addEventListener("submit", async (event) => {
 });
 document.querySelectorAll(".nav-button").forEach((button) => button.addEventListener("click", () => { const room = button.dataset.view === "room"; $("#collection-view").hidden = room; $("#room-view").hidden = !room; document.querySelectorAll(".nav-button").forEach((item) => item.classList.toggle("active", item === button)); }));
 $("#sign-out").addEventListener("click", async () => { await client.auth.signOut(); window.location.reload(); });
-client.auth.getSession().then(({ data }) => { if (data.session) openLibrary(); });
+client.auth.getSession().then(({ data }) => {
+  if (data.session) openLibrary();
+  else showLogin();
+}).catch(showLogin);
