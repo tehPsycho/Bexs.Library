@@ -64,18 +64,26 @@
                 </div>
                 <span id="scanHelp">Search your shelves, or enter a new ISBN to look it up.</span>
               </div>
-              <label class="language-picker" title="Language">
-                <span aria-hidden="true">⚑</span>
-                <select id="languageSelect" aria-label="Language">
-                  <option value="en">English</option>
-                  <option value="es">Español</option>
-                  <option value="fr">Français</option>
-                </select>
-              </label>
               <div class="member-menu">
-                <span id="member-avatar" class="member-avatar" aria-hidden="true">B</span>
-                <span id="member-name"></span>
-                <button id="sign-out" type="button">Sign out</button>
+                <button id="member-menu-toggle" class="member-menu-toggle" type="button" aria-label="Open account menu" aria-haspopup="true" aria-expanded="false">
+                  <span id="member-avatar" class="member-avatar" aria-hidden="true">B</span>
+                </button>
+                <div id="member-menu-popover" class="member-menu-popover" hidden>
+                  <div class="member-menu-heading">
+                    <span class="menu-eyebrow">Signed in as</span>
+                    <strong id="member-name"></strong>
+                  </div>
+                  <label class="language-picker" title="Language">
+                    <span aria-hidden="true">⚑</span>
+                    <span>Language</span>
+                    <select id="languageSelect" aria-label="Language">
+                      <option value="en">English</option>
+                      <option value="es">Español</option>
+                      <option value="fr">Français</option>
+                    </select>
+                  </label>
+                  <button id="sign-out" type="button">Sign out <span aria-hidden="true">→</span></button>
+                </div>
               </div>
             </header>
 
@@ -109,29 +117,30 @@
                   </article>
                 </section>
 
-                <section class="toolbar" aria-label="Library controls">
-                  <select id="statusFilter" aria-label="Filter by reading status">
-                    <option value="all">All books</option>
-                    <option value="unread">Unread</option>
-                    <option value="read">Read</option>
-                    <option value="rated">Rated</option>
-                  </select>
-                  <select id="sortBooks" aria-label="Sort books">
-                    <option value="added-desc">Newest added</option>
-                    <option value="title-asc">Title A-Z</option>
-                    <option value="author-asc">Author A-Z</option>
-                    <option value="rating-desc">Highest rated</option>
-                    <option value="finished-desc">Recently finished</option>
-                  </select>
-                </section>
-
                 <section class="shelf-section" aria-labelledby="shelfTitle">
                   <div class="section-heading">
                     <div>
                       <p class="eyebrow">Shelves</p>
                       <h2 id="shelfTitle">Your books</h2>
                     </div>
-                    <p id="resultCount">No books yet</p>
+                    <div class="shelf-controls">
+                      <p id="resultCount">No books yet</p>
+                      <div class="toolbar" aria-label="Library controls">
+                        <select id="statusFilter" aria-label="Filter by reading status">
+                          <option value="all">All books</option>
+                          <option value="unread">Unread</option>
+                          <option value="read">Read</option>
+                          <option value="rated">Rated</option>
+                        </select>
+                        <select id="sortBooks" aria-label="Sort books">
+                          <option value="added-desc">Newest added</option>
+                          <option value="title-asc">Title A-Z</option>
+                          <option value="author-asc">Author A-Z</option>
+                          <option value="rating-desc">Highest rated</option>
+                          <option value="finished-desc">Recently finished</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   <div id="bookGrid" class="book-grid"></div>
                   <div id="emptyState" class="empty-state">

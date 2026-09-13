@@ -64,7 +64,15 @@
       const name = profile.display_name || profile.username || "reader";
       $("#member-name").textContent = name;
       $("#member-name").title = `Signed in as ${name}`;
-      $("#member-avatar").textContent = name.trim().charAt(0).toUpperCase() || "B";
+      const avatar = $("#member-avatar");
+      avatar.textContent = name.trim().charAt(0).toUpperCase() || "B";
+      if (profile.avatar_url) {
+        const image = document.createElement("img");
+        image.src = profile.avatar_url;
+        image.alt = "";
+        image.addEventListener("error", () => image.remove());
+        avatar.append(image);
+      }
       showLibrary();
       await initializeRenderApplication();
     } catch (error) {
@@ -108,6 +116,23 @@
       showLogin();
       await client.auth.signOut();
       window.location.reload();
+    });
+
+    const menuToggle = $("#member-menu-toggle");
+    const menuPopover = $("#member-menu-popover");
+    const setMenuOpen = (open) => {
+      menuPopover.hidden = !open;
+      menuToggle.setAttribute("aria-expanded", String(open));
+    };
+    menuToggle.addEventListener("click", () => setMenuOpen(menuPopover.hidden));
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".member-menu")) setMenuOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        menuToggle.focus();
+      }
     });
 
     try {
