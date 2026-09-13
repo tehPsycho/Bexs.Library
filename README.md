@@ -142,3 +142,101 @@ legacy aliases.
 ## Deployment
 
 This remains a static site and can be published with GitHub Pages. Apply the database schema first, add the deployed origin to Supabase's URL configuration, then deploy the repository root. `CNAME` retains the custom-domain configuration.
+
+## Clean setup and blank-page recovery
+
+The root page is the deployable application. Do not publish `library render/` as the
+site root; that directory only redirects back to the repository root. The startup
+sequence is `index.html` → Supabase/configuration → `script.js` → `app.js` →
+`room.js`. If a dependency cannot load, the sign-in card now remains visible and
+shows a useful error instead of leaving the `auth-loading` screen blank.
+
+### 1. Create or reset Supabase
+
+1. Create a Supabase project and save its **Project URL** and **Publishable key**
+   from **Project Settings → API**. A legacy `anon` key also works, but never use
+   the `service_role`/secret key in this repository.
+2. Open **SQL Editor**, paste all of `supabase/schema.sql`, and run it. The script
+   creates `profiles` and `books`, enables RLS, installs owner-only policies, and
+   adds the trigger that creates a profile for each new Auth user.
+3. In **Authentication → Providers → Email**, enable Email/Password. For a private
+   library you can disable public sign-ups; accounts created by an administrator
+   still work.
+4. In **Authentication → URL Configuration**, set the Site URL to
+   `https://bexslibrary.com` and add both `https://bexslibrary.com/**` and
+   `http://localhost:8080/**` as redirect URLs.
+5. In **Authentication → Users**, choose **Add user**, provide a full email and a
+   strong password, and auto-confirm the user. Create users only after running the
+   schema so the trigger creates their `profiles` row.
+6. Confirm the new user has one matching row in **Table Editor → profiles**. If it
+   does not, delete and recreate the Auth user after applying the schema, or run:
+
+   ```sql
+   insert into public.profiles (id, username, display_name)
+   select id, lower(split_part(email, '@', 1)), split_part(email, '@', 1)
+   from auth.users
+   on conflict (id) do nothing;
+   ```
+
+   Usernames must be unique. If two email addresses share the same text before
+   `@`, edit one profile username before creating the second account.
+
+### 2. Point the site at the project
+
+Update `config.js` with the values from the new project:
+
+```js
+window.BEXS_CONFIG = {
+  supabaseUrl: "https://YOUR_PROJECT_REF.supabase.co",
+  supabasePublishableKey: "YOUR_PUBLISHABLE_KEY",
+};
+```
+
+The publishable key belongs in browser code; database security comes from the RLS
+policies. Search the repository for `service_role` before committing and make sure
+no real secret key is present.
+
+### 3. Verify locally
+
+From the repository root, run:
+
+```bash
+python3 -m http.server 8080
+```
+
+Open `http://localhost:8080` in a private browser window. The member card should
+appear immediately. Sign in, add or scan a book, refresh, and confirm it remains;
+then open **3D Library**. In DevTools, verify the Console has no red errors and the
+Network requests to `/auth/v1/`, `/rest/v1/profiles`, and `/rest/v1/books` do not
+return 401/403 errors.
+
+Common failures:
+
+- **Supabase client could not be loaded:** a blocker, firewall, or CSP blocked
+  `cdn.jsdelivr.net`; allow that host and reload.
+- **Invalid API key / Failed to fetch:** copy the URL and publishable key again,
+  and check that the Supabase project is active.
+- **Profile missing / 406 from `profiles`:** apply the schema and recreate the
+  user, or use the repair SQL above.
+- **401 from Auth:** enable Email/Password, auto-confirm the user, and use the full
+  email address to sign in.
+- **403 from `books`:** rerun the complete schema as the project owner so all RLS
+  policies exist.
+- **Only the background appears:** hard-refresh, clear the site's cached files,
+  and inspect the first Console error. The checked-in root HTML and JavaScript
+  must be deployed together; stale mixed versions have incompatible element IDs.
+
+### 4. Deploy with GitHub Pages and the custom domain
+
+1. Push the committed branch to GitHub and merge it into the branch selected in
+   **Repository Settings → Pages**.
+2. Choose **Deploy from a branch**, select the repository root (`/`), and save.
+3. Keep `CNAME` containing `bexslibrary.com`. At the DNS provider, configure the
+   apex records exactly as GitHub Pages documents, and remove conflicting A/AAAA
+   records. If using Cloudflare proxying, temporarily select **DNS only** while
+   GitHub verifies the domain and provisions the certificate.
+4. In GitHub Pages settings, wait for the domain check and TLS certificate, then
+   enable **Enforce HTTPS**. Re-enable any proxy only after HTTPS works directly.
+5. Recheck the production URL in a private window and repeat the sign-in,
+   add/refresh, and 3D-room smoke test. Do not use the HTTP version shown in an old
+   bookmark; redirect it to HTTPS once the certificate is active.
