@@ -1,5 +1,21 @@
 const assert = require("node:assert/strict");
-const { deserializeBook, serializeBook } = require("../book-metadata.js");
+const { deserializeBook, normalizeCoverUrl, serializeBook } = require("../book-metadata.js");
+
+assert.equal(normalizeCoverUrl("http://example.com/cover.jpg"), "https://example.com/cover.jpg");
+assert.equal(normalizeCoverUrl("//example.com/cover.jpg"), "https://example.com/cover.jpg");
+
+const insecureCoverBook = deserializeBook({
+  metadata: {
+    cover_url: "http://example.com/primary.jpg",
+    coverOptions: ["http://example.com/first.jpg", "https://example.com/second.jpg"],
+  },
+});
+assert.equal(insecureCoverBook.coverUrl, "https://example.com/primary.jpg");
+assert.deepEqual(insecureCoverBook.coverOptions, [
+  "https://example.com/first.jpg",
+  "https://example.com/second.jpg",
+]);
+assert.equal(serializeBook(insecureCoverBook).metadata.cover_url, "https://example.com/primary.jpg");
 
 const rendererBook = {
   id: 7,

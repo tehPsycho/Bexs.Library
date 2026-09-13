@@ -1,5 +1,5 @@
 (function () {
-  const { deserializeBook, serializeBook } = window.BexsBookMetadata;
+  const { deserializeBook, normalizeCoverUrl, serializeBook } = window.BexsBookMetadata;
   const STORAGE_KEY = "beccas-library:v1";
   const SETTINGS_KEY = "beccas-library:settings";
   const config = window.BEXS_CONFIG;
@@ -494,7 +494,7 @@
     const googleCovers = ["extraLarge", "large", "medium", "small", "thumbnail", "smallThumbnail"]
       .map((key) => imageLinks[key])
       .filter(Boolean)
-      .map((url) => url.replace("http://", "https://"));
+      .map(normalizeCoverUrl);
 
     return {
       title: info.title,
@@ -899,7 +899,7 @@
       card.addEventListener("click", () => openBook(book, "From your shelves"));
 
       const cover = book.coverUrl
-        ? `<img src="${book.coverUrl}" alt="Cover of ${escapeText(book.title)}" loading="lazy" data-cover />`
+        ? `<img src="${escapeText(book.coverUrl)}" alt="Cover of ${escapeText(book.title)}" loading="lazy" data-cover />`
         : `<div class="cover-placeholder">${escapeText(book.title)}</div>`;
       card.innerHTML = `
         ${cover}
