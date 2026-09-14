@@ -707,6 +707,7 @@ body.show-book .book-view {
 .form-message { position: relative; min-height: 1.3em; margin: 10px 0 0; font-size: 0.82rem; font-weight: 750; }
 .form-message.error { color: var(--wine); }
 .form-message.success { color: var(--moss); }
+.auth-form button[aria-busy="true"] { cursor: wait; opacity: 0.72; }
 body.auth-loading .login-view { visibility: hidden; }
 
 .auth-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: rgba(34, 27, 23, 0.58); backdrop-filter: blur(5px); }
