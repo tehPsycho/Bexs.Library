@@ -232,6 +232,13 @@ Common failures:
   and check that the Supabase project is active.
 - **Profile missing / 406 from `profiles`:** apply the schema and recreate the
   user, or use the repair SQL above.
+- **Signup succeeds but no confirmation arrives:** first check **Authentication →
+  Users**. Supabase deliberately obscures whether an address is already registered,
+  so requesting an existing or still-unconfirmed address can look successful in the
+  browser without sending a new message. Use **Resend confirmation email** in the
+  signup modal, then inspect **Authentication → Logs** for SMTP rejection or rate-limit
+  details and verify the **Confirm signup** template still contains
+  `{{ .ConfirmationURL }}`.
 - **401 from Auth:** enable Email/Password, auto-confirm the user, and use the full
   email address to sign in.
 - **403 from `books`:** rerun the complete schema as the project owner so all RLS
