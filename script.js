@@ -11,6 +11,33 @@
   };
 
   const authModal = () => $("#auth-modal");
+  const setFormBusy = (form, busy) => {
+    const submit = form.querySelector('button[type="submit"]');
+    if (!submit) return;
+    submit.disabled = busy;
+    submit.setAttribute("aria-busy", String(busy));
+  };
+
+  const authRequest = async (form, pendingMessage, request) => {
+    setFormBusy(form, true);
+    setMessage($("#auth-modal-message"), pendingMessage);
+    let timeout;
+    try {
+      return await Promise.race([
+        request(),
+        new Promise((resolve) => {
+          timeout = window.setTimeout(() => resolve({ timedOut: true }), 15000);
+        }),
+      ]);
+    } catch (error) {
+      console.error("Supabase authentication request failed", error);
+      return { error: error instanceof Error ? error : new Error("The authentication service could not be reached.") };
+    } finally {
+      window.clearTimeout(timeout);
+      setFormBusy(form, false);
+    }
+  };
+
   const showAuthModal = (mode, email = "") => {
     const content = {
       signup: ["Membership desk", "Request a library card", "Create your account, then follow the confirmation link we send to your email before signing in."],
@@ -152,45 +179,58 @@
 
     $("#signup-form").addEventListener("submit", async (event) => {
       event.preventDefault();
+      const form = event.currentTarget;
       const email = $("#signup-email").value.trim().toLowerCase();
       const password = $("#signup-password").value;
       if (password !== $("#signup-confirm-password").value) {
         setMessage($("#auth-modal-message"), "Passwords do not match.", "error");
         return;
       }
-      setMessage($("#auth-modal-message"), "Requesting your card…");
-      const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+      const { data, error, timedOut } = await authRequest(form, "Requesting your card…", () =>
+        client.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } }));
+      if (timedOut) {
+        setMessage($("#auth-modal-message"), "This is taking longer than expected. Check your inbox for the confirmation email before trying again.", "success");
+        return;
+      }
       if (error) {
         setMessage($("#auth-modal-message"), error.message || "We could not create your account.", "error");
         return;
       }
-      if (data.session) await client.auth.signOut();
-      event.currentTarget.reset();
+      if (data.session) client.auth.signOut().catch((signOutError) => console.error("Could not clear the new session", signOutError));
+      form.reset();
       setMessage($("#auth-modal-message"), "Check your inbox and confirm your email before signing in.", "success");
     });
 
     $("#reset-request-form").addEventListener("submit", async (event) => {
       event.preventDefault();
+      const form = event.currentTarget;
       const email = $("#reset-email").value.trim().toLowerCase();
-      setMessage($("#auth-modal-message"), "Sending your reset link…");
-      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
-      setMessage($("#auth-modal-message"), error ? (error.message || "We could not send the reset email.") : "If that email belongs to a member, a reset link is on its way.", error ? "error" : "success");
+      const { error, timedOut } = await authRequest(form, "Sending your reset link…", () =>
+        client.auth.resetPasswordForEmail(email, { redirectTo }));
+      const message = timedOut
+        ? "This is taking longer than expected. Check your inbox before requesting another link."
+        : error ? (error.message || "We could not send the reset email.") : "If that email belongs to a member, a reset link is on its way.";
+      setMessage($("#auth-modal-message"), message, error ? "error" : "success");
     });
 
     $("#update-password-form").addEventListener("submit", async (event) => {
       event.preventDefault();
+      const form = event.currentTarget;
       const password = $("#new-password").value;
       if (password !== $("#confirm-new-password").value) {
         setMessage($("#auth-modal-message"), "Passwords do not match.", "error");
         return;
       }
-      setMessage($("#auth-modal-message"), "Saving your new password…");
-      const { error } = await client.auth.updateUser({ password });
+      const { error, timedOut } = await authRequest(form, "Saving your new password…", () => client.auth.updateUser({ password }));
+      if (timedOut) {
+        setMessage($("#auth-modal-message"), "This is taking longer than expected. Please check your connection and try again.", "error");
+        return;
+      }
       if (error) {
         setMessage($("#auth-modal-message"), error.message || "We could not update your password.", "error");
         return;
       }
-      event.currentTarget.reset();
+      form.reset();
       setMessage($("#auth-modal-message"), "Password updated. You can continue to your library.", "success");
     });
 

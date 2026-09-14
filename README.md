@@ -32,6 +32,14 @@ supabase db push
 
 In **Authentication → Providers → Email**, enable email/password, enable new-user sign-ups, and leave **Confirm email** enabled. This prevents a requested card from signing in until its owner follows the emailed confirmation link. In **Authentication → URL Configuration**, allow the production and local URLs listed below so confirmation and password-reset links can return to the app.
 
+Set **Authentication → URL Configuration → Site URL** to `https://bexslibrary.com` (not a localhost address), then add `https://bexslibrary.com/**` and `http://localhost:8080/**` under **Redirect URLs**. Supabase falls back to the Site URL when the `emailRedirectTo` sent by the browser is not allowed, which is why a deployed signup can otherwise produce a `localhost:3000` confirmation link.
+
+To match authentication emails to the site, copy the complete HTML from
+`supabase/email-templates/confirm-signup.html` into **Authentication → Email
+Templates → Confirm signup**, and copy `supabase/email-templates/reset-password.html`
+into **Reset password**. Keep the `{{ .ConfirmationURL }}` placeholder intact;
+Supabase replaces it with the one-time confirmation or recovery link.
+
 You can still create a pre-confirmed member from the dashboard (**Authentication → Users → Add user**) by selecting **Auto Confirm User**, or use the Management API/service key from a trusted terminal:
 
 ```bash
