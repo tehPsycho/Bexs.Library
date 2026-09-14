@@ -24,6 +24,13 @@ const spineColorInput = document.querySelector("#spineColorInput");
 const pageColorInput = document.querySelector("#pageColorInput");
 const bookSizeSlider = document.querySelector("#bookSizeSlider");
 const bookThicknessSlider = document.querySelector("#bookThicknessSlider");
+const mobileControls = document.querySelector("#mobileControls");
+const moveTouchZone = document.querySelector("#moveTouchZone");
+const lookTouchZone = document.querySelector("#lookTouchZone");
+const joystickKnob = document.querySelector("#joystickKnob");
+const mobileInteract = document.querySelector("#mobileInteract");
+const mobileFlipBook = document.querySelector("#mobileFlipBook");
+const mobileReviewBook = document.querySelector("#mobileReviewBook");
 const api = window.BeccasLibrary;
 
 if (canvas && api) {
@@ -50,6 +57,8 @@ if (canvas && api) {
 
   const player = { position: new THREE.Vector3(0, 1.55, 4.25), yaw: 0, pitch: -0.06, speed: 3.25 };
   const keys = new Set();
+  const touchMove = new THREE.Vector2();
+  const coarsePointer = window.matchMedia("(pointer: coarse)");
   const bookMeshes = [];
   const hoverTargets = [];
   const textureCache = new Map();
@@ -67,6 +76,11 @@ if (canvas && api) {
   let lastSignature = "";
   let frameId = 0;
   let promptRevision = 0;
+  let movePointerId = null;
+  let lookPointerId = null;
+  let lookLastX = 0;
+  let lookLastY = 0;
+  let lookTravel = 0;
 
   const palette = [0x7b2e3b, 0x283f59, 0x49664b, 0x704128, 0x9b6539, 0x384b3d, 0x6f4b57];
   const sizeProfiles = {
@@ -131,7 +145,12 @@ if (canvas && api) {
       updateCamera();
       setPrompt("WASD to move. Mouse look is active. Walk to the bookshelf or scanner table.");
       canvas.focus();
-      canvas.requestPointerLock?.();
+      if (coarsePointer.matches) {
+        mobileControls?.setAttribute("aria-hidden", "false");
+        requestMobilePresentation();
+      } else {
+        canvas.requestPointerLock?.();
+      }
       startLoop();
     },
     exit() {
@@ -142,7 +161,10 @@ if (canvas && api) {
       scannerModal.classList.remove("open");
       scannerModal.setAttribute("aria-hidden", "true");
       if (document.pointerLockElement === canvas) document.exitPointerLock();
+      if (document.fullscreenElement === exploreMode) document.exitFullscreen?.();
       setHovered(null);
+      resetTouchControls();
+      mobileControls?.setAttribute("aria-hidden", "true");
       stopLoop();
     },
     render(nextBooks) {
@@ -174,7 +196,17 @@ if (canvas && api) {
   overlayForm.addEventListener("submit", saveHeldNotes);
   buildInspectStars();
   buildRenderControls();
-  canvas.addEventListener("click", () => {
+  canvas.addEventListener("click", handlePrimaryAction);
+  mobileInteract?.addEventListener("click", handlePrimaryAction);
+  mobileFlipBook?.addEventListener("click", flipHeldBook);
+  mobileReviewBook?.addEventListener("click", () => {
+    if (!held) return;
+    if (inspectMode) exitInspectMode(true);
+    else enterInspectMode();
+  });
+  installTouchControls();
+
+  function handlePrimaryAction() {
     if (!active || scannerOpen || overlayOpen || inspectMode) return;
     if (held && nearShelf()) {
       putHeldBookBack();
@@ -188,8 +220,8 @@ if (canvas && api) {
       openScanner();
       return;
     }
-    canvas.requestPointerLock?.();
-  });
+    if (!coarsePointer.matches) canvas.requestPointerLock?.();
+  }
   window.addEventListener("mousemove", (event) => {
     if (!active || scannerOpen || overlayOpen) return;
     if (inspectMode) {
@@ -629,6 +661,7 @@ if (canvas && api) {
     camera.add(held.group);
     scene.add(camera);
     renderShelf(api.getBooks());
+    updateMobileActions();
     setPrompt("Book picked up. Q flips front/back. E inspects and reviews. Return to the shelf and press F to put it back.");
   }
 
@@ -702,6 +735,7 @@ if (canvas && api) {
     openOverlay(held.book, { keepInspecting: true });
     inspectBar?.classList.add("open");
     inspectBar?.setAttribute("aria-hidden", "false");
+    updateMobileActions();
     setPrompt("Inspect and review. Drag the book on the right, edit notes on the left. E returns to hand.");
   }
 
@@ -711,6 +745,7 @@ if (canvas && api) {
     exploreMode?.classList.remove("inspecting");
     inspectBar?.classList.remove("open");
     inspectBar?.setAttribute("aria-hidden", "true");
+    updateMobileActions();
     closeOverlay({ resumePointerLock: false });
     if (!held) return;
     held.centered = false;
@@ -720,7 +755,7 @@ if (canvas && api) {
     held.group.userData.mesh.rotation.set(-0.08, held.flipped ? Math.PI : 0, 0.05);
     refreshHeldMaterials();
     setPrompt("Book in hand. Q flips. E inspects and reviews.");
-    if (resumePointerLock && active && !scannerOpen && !overlayOpen) canvas.requestPointerLock?.();
+    if (resumePointerLock && active && !scannerOpen && !overlayOpen && !coarsePointer.matches) canvas.requestPointerLock?.();
   }
 
   function rotateInspectedBook(dx, dy) {
@@ -866,6 +901,7 @@ if (canvas && api) {
     exitInspectMode(false);
     camera.remove(held.group);
     held = null;
+    updateMobileActions();
     placementMarker.visible = false;
     if (placementSlot !== null) await api.moveBookToSlot(bookId, placementSlot);
     placementSlot = null;
@@ -947,6 +983,8 @@ if (canvas && api) {
     if (keys.has("s")) movement.sub(forward);
     if (keys.has("d")) movement.add(right);
     if (keys.has("a")) movement.sub(right);
+    if (touchMove.y) movement.addScaledVector(forward, -touchMove.y);
+    if (touchMove.x) movement.addScaledVector(right, touchMove.x);
     if (movement.lengthSq() > 0) {
       movement.normalize().multiplyScalar(player.speed * delta);
       player.position.add(movement);
@@ -988,6 +1026,93 @@ if (canvas && api) {
 
   function setHovered(mesh) {
     hovered = mesh;
+    updateMobileActions();
+  }
+
+  function updateMobileActions() {
+    if (mobileFlipBook) mobileFlipBook.disabled = !held;
+    if (mobileReviewBook) {
+      mobileReviewBook.disabled = !held;
+      mobileReviewBook.textContent = inspectMode ? "Close review" : "Review";
+    }
+    if (mobileInteract) mobileInteract.textContent = held && nearShelf() ? "Shelve" : hovered ? "Pick up" : nearScanner() ? "Scan" : "Use";
+  }
+
+  function installTouchControls() {
+    if (!moveTouchZone || !lookTouchZone) return;
+    moveTouchZone.addEventListener("pointerdown", (event) => {
+      if (!active || movePointerId !== null) return;
+      movePointerId = event.pointerId;
+      moveTouchZone.setPointerCapture(event.pointerId);
+      updateJoystick(event);
+    });
+    moveTouchZone.addEventListener("pointermove", (event) => {
+      if (event.pointerId === movePointerId) updateJoystick(event);
+    });
+    ["pointerup", "pointercancel"].forEach((type) => moveTouchZone.addEventListener(type, (event) => {
+      if (event.pointerId !== movePointerId) return;
+      movePointerId = null;
+      touchMove.set(0, 0);
+      joystickKnob?.style.setProperty("transform", "translate(0, 0)");
+    }));
+    lookTouchZone.addEventListener("pointerdown", (event) => {
+      if (!active || lookPointerId !== null || scannerOpen || overlayOpen) return;
+      lookPointerId = event.pointerId;
+      lookLastX = event.clientX;
+      lookLastY = event.clientY;
+      lookTravel = 0;
+      lookTouchZone.setPointerCapture(event.pointerId);
+    });
+    lookTouchZone.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== lookPointerId) return;
+      const dx = event.clientX - lookLastX;
+      const dy = event.clientY - lookLastY;
+      lookLastX = event.clientX;
+      lookLastY = event.clientY;
+      lookTravel += Math.abs(dx) + Math.abs(dy);
+      if (inspectMode && held) rotateInspectedBook(dx, dy);
+      else look(dx * 1.25, dy * 1.25);
+    });
+    ["pointerup", "pointercancel"].forEach((type) => lookTouchZone.addEventListener(type, (event) => {
+      if (event.pointerId !== lookPointerId) return;
+      lookPointerId = null;
+      if (type === "pointerup" && lookTravel < 10) handlePrimaryAction();
+    }));
+  }
+
+  function updateJoystick(event) {
+    const bounds = moveTouchZone.querySelector(".joystick-base")?.getBoundingClientRect() || moveTouchZone.getBoundingClientRect();
+    const centerX = bounds.left + bounds.width / 2;
+    const centerY = bounds.top + bounds.height / 2;
+    const radius = Math.min(bounds.width, bounds.height) * 0.22;
+    const dx = event.clientX - centerX;
+    const dy = event.clientY - centerY;
+    const length = Math.hypot(dx, dy) || 1;
+    const scale = Math.min(1, radius / length);
+    const x = dx * scale;
+    const y = dy * scale;
+    touchMove.set(x / radius, y / radius);
+    joystickKnob?.style.setProperty("transform", `translate(${x}px, ${y}px)`);
+  }
+
+  function resetTouchControls() {
+    movePointerId = null;
+    lookPointerId = null;
+    touchMove.set(0, 0);
+    joystickKnob?.style.setProperty("transform", "translate(0, 0)");
+  }
+
+  async function requestMobilePresentation() {
+    try {
+      if (!document.fullscreenElement) await exploreMode?.requestFullscreen?.({ navigationUI: "hide" });
+    } catch (_error) {
+      // Fullscreen availability varies by browser; the fixed viewport remains usable.
+    }
+    try {
+      await screen.orientation?.lock?.("landscape");
+    } catch (_error) {
+      // iOS and some embedded browsers require the user to rotate manually.
+    }
   }
 
   function pointInBookSlot(hit) {
