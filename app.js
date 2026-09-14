@@ -45,6 +45,10 @@
   let cameraStream = null;
   let barcodeScanFrame = null;
   let fallbackScannerControls = null;
+  let barcodeDetectedHandler = null;
+  let cameraReturnFocus = null;
+  let cameraModalHome = null;
+  let cameraCloseHandler = null;
   const translationCache = new Map();
   const textOriginals = new WeakMap();
   const attrOriginals = new WeakMap();
@@ -293,7 +297,7 @@
     elements.scanButton.textContent = isBusy ? "Looking..." : "Search";
   }
 
-  async function openCameraScanner() {
+  async function openCameraScanner(options = {}) {
     if (!navigator.mediaDevices?.getUserMedia) {
       if (!window.isSecureContext) {
         showToast("Camera access requires HTTPS. Reopen this page using its secure address.");
@@ -303,6 +307,16 @@
       return;
     }
 
+    barcodeDetectedHandler = typeof options.onDetected === "function" ? options.onDetected : null;
+    cameraCloseHandler = typeof options.onClose === "function" ? options.onClose : null;
+    cameraReturnFocus = options.returnFocus || elements.cameraScanButton;
+    if (options.container && elements.cameraScannerModal.parentElement !== options.container) {
+      cameraModalHome = {
+        parent: elements.cameraScannerModal.parentElement,
+        nextSibling: elements.cameraScannerModal.nextSibling,
+      };
+      options.container.append(elements.cameraScannerModal);
+    }
     elements.cameraScannerModal.hidden = false;
     elements.cameraScannerStatus.textContent = "Starting camera…";
     try {
@@ -376,10 +390,12 @@
   }
 
   async function completeBarcodeScan(isbn) {
+    const handler = barcodeDetectedHandler;
     elements.isbnInput.value = isbn;
     closeCameraScanner();
     showToast("ISBN scanned. Looking up your book…");
-    await submitSearch();
+    if (handler) await handler(isbn);
+    else await submitSearch();
   }
 
   function closeCameraScanner() {
@@ -391,7 +407,16 @@
     cameraStream = null;
     elements.cameraScannerVideo.srcObject = null;
     elements.cameraScannerModal.hidden = true;
-    elements.cameraScanButton.focus();
+    if (cameraModalHome) {
+      cameraModalHome.parent.insertBefore(elements.cameraScannerModal, cameraModalHome.nextSibling);
+      cameraModalHome = null;
+    }
+    barcodeDetectedHandler = null;
+    const onClose = cameraCloseHandler;
+    cameraCloseHandler = null;
+    cameraReturnFocus?.focus?.();
+    cameraReturnFocus = null;
+    onClose?.();
   }
 
   async function fetchBookData(isbn) {
@@ -1235,6 +1260,14 @@
       return library.slice();
     },
     lookupAndAddBook,
+    scanBarcode(onDetected, options = {}) {
+      return openCameraScanner({
+        onDetected,
+        onClose: options.onClose,
+        returnFocus: options.returnFocus,
+        container: options.container,
+      });
+    },
     exitExplore,
     getLanguage() {
       return settings.language;
