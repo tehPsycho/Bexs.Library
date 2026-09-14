@@ -298,6 +298,26 @@
             <button id="exitExplore" type="button">Exit</button>
           </div>
           <div class="crosshair" aria-hidden="true"></div>
+          <div id="mobileControls" class="mobile-controls" aria-label="Touch controls" aria-hidden="true">
+            <div id="moveTouchZone" class="touch-zone move-touch-zone" aria-label="Movement joystick">
+              <div class="joystick-base" aria-hidden="true">
+                <div id="joystickKnob" class="joystick-knob"></div>
+              </div>
+              <span>Move</span>
+            </div>
+            <div id="lookTouchZone" class="touch-zone look-touch-zone" aria-label="Drag to look around">
+              <span>Drag to look</span>
+            </div>
+            <div class="mobile-action-bar" aria-label="Book actions">
+              <button id="mobileInteract" type="button">Use</button>
+              <button id="mobileFlipBook" type="button" disabled>Flip book</button>
+              <button id="mobileReviewBook" type="button" disabled>Review</button>
+            </div>
+          </div>
+          <div id="landscapeNotice" class="landscape-notice" aria-live="polite">
+            <strong>Rotate your device</strong>
+            <span>The 3D library works best in landscape.</span>
+          </div>
           <div id="inspectBar" class="inspect-bar" aria-hidden="true">
             <div class="inspect-refine" aria-label="Book render controls">
               <p class="inspect-settings-title">Book render</p>
