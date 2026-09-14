@@ -1042,12 +1042,15 @@ if (canvas && api) {
     if (!moveTouchZone || !lookTouchZone) return;
     moveTouchZone.addEventListener("pointerdown", (event) => {
       if (!active || movePointerId !== null) return;
+      event.preventDefault();
       movePointerId = event.pointerId;
       moveTouchZone.setPointerCapture(event.pointerId);
       updateJoystick(event);
     });
     moveTouchZone.addEventListener("pointermove", (event) => {
-      if (event.pointerId === movePointerId) updateJoystick(event);
+      if (event.pointerId !== movePointerId) return;
+      event.preventDefault();
+      updateJoystick(event);
     });
     ["pointerup", "pointercancel"].forEach((type) => moveTouchZone.addEventListener(type, (event) => {
       if (event.pointerId !== movePointerId) return;
@@ -1055,8 +1058,15 @@ if (canvas && api) {
       touchMove.set(0, 0);
       joystickKnob?.style.setProperty("transform", "translate(0, 0)");
     }));
+    moveTouchZone.addEventListener("lostpointercapture", (event) => {
+      if (event.pointerId !== movePointerId) return;
+      movePointerId = null;
+      touchMove.set(0, 0);
+      joystickKnob?.style.setProperty("transform", "translate(0, 0)");
+    });
     lookTouchZone.addEventListener("pointerdown", (event) => {
       if (!active || lookPointerId !== null || scannerOpen || overlayOpen) return;
+      event.preventDefault();
       lookPointerId = event.pointerId;
       lookLastX = event.clientX;
       lookLastY = event.clientY;
@@ -1065,6 +1075,7 @@ if (canvas && api) {
     });
     lookTouchZone.addEventListener("pointermove", (event) => {
       if (event.pointerId !== lookPointerId) return;
+      event.preventDefault();
       const dx = event.clientX - lookLastX;
       const dy = event.clientY - lookLastY;
       lookLastX = event.clientX;
@@ -1078,20 +1089,30 @@ if (canvas && api) {
       lookPointerId = null;
       if (type === "pointerup" && lookTravel < 10) handlePrimaryAction();
     }));
+    lookTouchZone.addEventListener("lostpointercapture", (event) => {
+      if (event.pointerId === lookPointerId) lookPointerId = null;
+    });
+    window.addEventListener("blur", resetTouchControls);
   }
 
   function updateJoystick(event) {
     const bounds = moveTouchZone.querySelector(".joystick-base")?.getBoundingClientRect() || moveTouchZone.getBoundingClientRect();
     const centerX = bounds.left + bounds.width / 2;
     const centerY = bounds.top + bounds.height / 2;
-    const radius = Math.min(bounds.width, bounds.height) * 0.22;
+    const radius = Math.min(bounds.width, bounds.height) * 0.32;
     const dx = event.clientX - centerX;
     const dy = event.clientY - centerY;
     const length = Math.hypot(dx, dy) || 1;
     const scale = Math.min(1, radius / length);
     const x = dx * scale;
     const y = dy * scale;
-    touchMove.set(x / radius, y / radius);
+    const normalizedX = x / radius;
+    const normalizedY = y / radius;
+    const deadZone = 0.12;
+    touchMove.set(
+      Math.abs(normalizedX) < deadZone ? 0 : normalizedX,
+      Math.abs(normalizedY) < deadZone ? 0 : normalizedY,
+    );
     joystickKnob?.style.setProperty("transform", `translate(${x}px, ${y}px)`);
   }
 
