@@ -1502,8 +1502,8 @@ body.exploring .explore-mode {
 .explore-mode.touch-enabled .explore-hud > div { display: none; }
 body.exploring .explore-mode.touch-enabled .mobile-controls[aria-hidden="false"] { position: absolute; inset: 0; display: block; pointer-events: none; }
 .explore-mode.touch-enabled .touch-zone { position: absolute; z-index: 18; pointer-events: auto; touch-action: none; user-select: none; }
-.explore-mode.touch-enabled .move-touch-zone { left: 0; bottom: 0; width: clamp(132px, 30vw, 180px); height: clamp(132px, 45vh, 180px); }
-.explore-mode.touch-enabled .look-touch-zone { top: 0; right: 0; bottom: 0; left: 32%; }
+.explore-mode.touch-enabled .move-touch-zone { top: 0; bottom: 0; left: 0; width: 42%; }
+.explore-mode.touch-enabled .look-touch-zone { top: 0; right: 0; bottom: 0; left: 42%; }
 .explore-mode.touch-enabled.inspecting .move-touch-zone { pointer-events: none; }
 .explore-mode.touch-enabled .touch-zone > span { position: absolute; color: rgba(255,250,240,.58); font-size: .68rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
 .explore-mode.touch-enabled .move-touch-zone > span { left: calc(max(10px, env(safe-area-inset-left)) + 46px); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 104px); transform: translateX(-50%); }
