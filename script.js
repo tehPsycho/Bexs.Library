@@ -51,7 +51,10 @@
       $(`#${name}-form`).hidden = name !== (mode === "reset" ? "reset-request" : mode === "update" ? "update-password" : "signup");
     });
     setMessage($("#auth-modal-message"), "");
-    if (mode === "signup") $("#signup-email").value = email;
+    if (mode === "signup") {
+      $("#signup-email").value = email;
+      $("#resend-signup-confirmation").hidden = true;
+    }
     if (mode === "reset") $("#reset-email").value = email;
     authModal().hidden = false;
     document.body.style.overflow = "hidden";
@@ -189,7 +192,9 @@
       const { data, error, timedOut } = await authRequest(form, "Requesting your card…", () =>
         client.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } }));
       if (timedOut) {
-        setMessage($("#auth-modal-message"), "This is taking longer than expected. Check your inbox for the confirmation email before trying again.", "success");
+        $("#signup-email").value = email;
+        $("#resend-signup-confirmation").hidden = false;
+        setMessage($("#auth-modal-message"), "This is taking longer than expected. Check your inbox, or use the resend button below after a minute.", "success");
         return;
       }
       if (error) {
@@ -198,7 +203,44 @@
       }
       if (data.session) client.auth.signOut().catch((signOutError) => console.error("Could not clear the new session", signOutError));
       form.reset();
-      setMessage($("#auth-modal-message"), "Check your inbox and confirm your email before signing in.", "success");
+      $("#signup-email").value = email;
+      $("#resend-signup-confirmation").hidden = false;
+      const isExistingAccount = Array.isArray(data.user?.identities) && data.user.identities.length === 0;
+      const message = isExistingAccount
+        ? "That address may already have an account or a pending request. Use the button below to resend its confirmation email."
+        : "Check your inbox and confirm your email before signing in. If it does not arrive, use the resend button below.";
+      setMessage($("#auth-modal-message"), message, "success");
+    });
+
+    $("#resend-signup-confirmation").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      const email = $("#signup-email").value.trim().toLowerCase();
+      if (!email || !$("#signup-email").checkValidity()) {
+        $("#signup-email").reportValidity();
+        return;
+      }
+
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      setMessage($("#auth-modal-message"), "Resending your confirmation email…");
+      try {
+        const { error } = await client.auth.resend({
+          type: "signup",
+          email,
+          options: { emailRedirectTo: redirectTo },
+        });
+        setMessage(
+          $("#auth-modal-message"),
+          error ? (error.message || "We could not resend the confirmation email.") : "Confirmation email resent. Check your inbox and spam folder.",
+          error ? "error" : "success",
+        );
+      } catch (error) {
+        console.error("Supabase confirmation resend failed", error);
+        setMessage($("#auth-modal-message"), "The confirmation email could not be resent. Please try again.", "error");
+      } finally {
+        button.disabled = false;
+        button.setAttribute("aria-busy", "false");
+      }
     });
 
     $("#reset-request-form").addEventListener("submit", async (event) => {

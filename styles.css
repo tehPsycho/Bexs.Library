@@ -722,6 +722,9 @@ body.auth-loading .login-view { visibility: hidden; }
 .auth-form input { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: white; outline: none; }
 .auth-form input:focus { border-color: var(--brass); box-shadow: 0 0 0 3px rgba(199, 157, 67, 0.18); }
 .auth-form .card-submit { margin-top: 12px; }
+.auth-secondary-action { justify-self: center; margin-top: 6px; padding: 4px; border: 0; border-bottom: 1px solid currentColor; background: transparent; color: var(--wine); font-weight: 800; }
+.auth-secondary-action[hidden] { display: none; }
+.auth-secondary-action[aria-busy="true"] { cursor: wait; opacity: 0.72; }
 .member-reset-password { width: 100%; padding: 12px 2px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--ink); text-align: left; font-weight: 800; }
 
 .book-grid {
