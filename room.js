@@ -58,7 +58,8 @@ if (canvas && api) {
   const player = { position: new THREE.Vector3(0, 1.55, 4.25), yaw: 0, pitch: -0.06, speed: 3.25 };
   const keys = new Set();
   const touchMove = new THREE.Vector2();
-  const coarsePointer = window.matchMedia("(pointer: coarse)");
+  const coarsePointer = window.matchMedia("(any-pointer: coarse)");
+  const touchCapable = navigator.maxTouchPoints > 0 || coarsePointer.matches;
   const bookMeshes = [];
   const hoverTargets = [];
   const textureCache = new Map();
@@ -81,6 +82,8 @@ if (canvas && api) {
   let lookLastX = 0;
   let lookLastY = 0;
   let lookTravel = 0;
+
+  exploreMode.classList.toggle("touch-enabled", touchCapable);
 
   const palette = [0x7b2e3b, 0x283f59, 0x49664b, 0x704128, 0x9b6539, 0x384b3d, 0x6f4b57];
   const sizeProfiles = {
@@ -145,7 +148,7 @@ if (canvas && api) {
       updateCamera();
       setPrompt("WASD to move. Mouse look is active. Walk to the bookshelf or scanner table.");
       canvas.focus();
-      if (coarsePointer.matches) {
+      if (touchCapable) {
         mobileControls?.setAttribute("aria-hidden", "false");
         requestMobilePresentation();
       } else {
@@ -220,7 +223,7 @@ if (canvas && api) {
       openScanner();
       return;
     }
-    if (!coarsePointer.matches) canvas.requestPointerLock?.();
+    if (!touchCapable) canvas.requestPointerLock?.();
   }
   window.addEventListener("mousemove", (event) => {
     if (!active || scannerOpen || overlayOpen) return;
@@ -1044,26 +1047,19 @@ if (canvas && api) {
       if (!active || movePointerId !== null) return;
       event.preventDefault();
       movePointerId = event.pointerId;
-      moveTouchZone.setPointerCapture(event.pointerId);
       updateJoystick(event);
     });
-    moveTouchZone.addEventListener("pointermove", (event) => {
+    window.addEventListener("pointermove", (event) => {
       if (event.pointerId !== movePointerId) return;
       event.preventDefault();
       updateJoystick(event);
-    });
-    ["pointerup", "pointercancel"].forEach((type) => moveTouchZone.addEventListener(type, (event) => {
+    }, { passive: false });
+    ["pointerup", "pointercancel"].forEach((type) => window.addEventListener(type, (event) => {
       if (event.pointerId !== movePointerId) return;
       movePointerId = null;
       touchMove.set(0, 0);
       joystickKnob?.style.setProperty("transform", "translate(0, 0)");
     }));
-    moveTouchZone.addEventListener("lostpointercapture", (event) => {
-      if (event.pointerId !== movePointerId) return;
-      movePointerId = null;
-      touchMove.set(0, 0);
-      joystickKnob?.style.setProperty("transform", "translate(0, 0)");
-    });
     lookTouchZone.addEventListener("pointerdown", (event) => {
       if (!active || lookPointerId !== null || scannerOpen || overlayOpen) return;
       event.preventDefault();
@@ -1071,9 +1067,8 @@ if (canvas && api) {
       lookLastX = event.clientX;
       lookLastY = event.clientY;
       lookTravel = 0;
-      lookTouchZone.setPointerCapture(event.pointerId);
     });
-    lookTouchZone.addEventListener("pointermove", (event) => {
+    window.addEventListener("pointermove", (event) => {
       if (event.pointerId !== lookPointerId) return;
       event.preventDefault();
       const dx = event.clientX - lookLastX;
@@ -1083,15 +1078,12 @@ if (canvas && api) {
       lookTravel += Math.abs(dx) + Math.abs(dy);
       if (inspectMode && held) rotateInspectedBook(dx, dy);
       else look(dx * 1.25, dy * 1.25);
-    });
-    ["pointerup", "pointercancel"].forEach((type) => lookTouchZone.addEventListener(type, (event) => {
+    }, { passive: false });
+    ["pointerup", "pointercancel"].forEach((type) => window.addEventListener(type, (event) => {
       if (event.pointerId !== lookPointerId) return;
       lookPointerId = null;
       if (type === "pointerup" && lookTravel < 10) handlePrimaryAction();
     }));
-    lookTouchZone.addEventListener("lostpointercapture", (event) => {
-      if (event.pointerId === lookPointerId) lookPointerId = null;
-    });
     window.addEventListener("blur", resetTouchControls);
   }
 
