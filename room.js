@@ -59,7 +59,7 @@ if (canvas && api) {
   const keys = new Set();
   const touchMove = new THREE.Vector2();
   const coarsePointer = window.matchMedia("(any-pointer: coarse)");
-  const touchCapable = navigator.maxTouchPoints > 0 || coarsePointer.matches;
+  let touchCapable = navigator.maxTouchPoints > 0 || coarsePointer.matches || "ontouchstart" in window;
   const bookMeshes = [];
   const hoverTargets = [];
   const textureCache = new Map();
@@ -146,7 +146,9 @@ if (canvas && api) {
       renderShelf(books || api.getBooks());
       resize();
       updateCamera();
-      setPrompt("WASD to move. Mouse look is active. Walk to the bookshelf or scanner table.");
+      setPrompt(touchCapable
+        ? "Use the left stick to move. Drag the right side to aim and look around."
+        : "WASD to move. Mouse look is active. Walk to the bookshelf or scanner table.");
       canvas.focus();
       if (touchCapable) {
         mobileControls?.setAttribute("aria-hidden", "false");
@@ -190,6 +192,16 @@ if (canvas && api) {
       pickUpBook(bookMeshes[0].userData.book);
       return true;
     },
+    __testPlayerState() {
+      return {
+        x: player.position.x,
+        z: player.position.z,
+        yaw: player.yaw,
+        pitch: player.pitch,
+        touchX: touchMove.x,
+        touchY: touchMove.y,
+      };
+    },
   };
 
   exitButton.addEventListener("click", () => api.exitExplore());
@@ -208,6 +220,18 @@ if (canvas && api) {
     else enterInspectMode();
   });
   installTouchControls();
+
+  // Some embedded iOS browsers do not advertise maxTouchPoints until their
+  // first touch. Promote the room at runtime so those players still get the
+  // controls instead of falling into desktop pointer-lock mode.
+  window.addEventListener("touchstart", enableTouchControls, { passive: true, once: true });
+
+  function enableTouchControls() {
+    if (touchCapable) return;
+    touchCapable = true;
+    exploreMode.classList.add("touch-enabled");
+    if (active) mobileControls?.setAttribute("aria-hidden", "false");
+  }
 
   function handlePrimaryAction() {
     if (!active || scannerOpen || overlayOpen || inspectMode) return;
@@ -1024,7 +1048,9 @@ if (canvas && api) {
     else if (nearScanner()) setPrompt("Press E or click to scan a new book.");
     else if (hovered) setPrompt(`${hovered.userData.book.title}. Press E or click to pick it up.`);
     else if (closeToShelf) setPrompt("Look at a book spine to pull it out, then click to pick it up.");
-    else setPrompt("WASD follows your view. Mouse moves your POV.");
+    else setPrompt(touchCapable
+      ? "The left stick follows your view. Drag the right side to aim."
+      : "WASD follows your view. Mouse moves your POV.");
   }
 
   function setHovered(mesh) {
@@ -1043,10 +1069,28 @@ if (canvas && api) {
 
   function installTouchControls() {
     if (!moveTouchZone || !lookTouchZone) return;
+
+    const endMove = (pointerId) => {
+      if (pointerId !== movePointerId) return;
+      movePointerId = null;
+      touchMove.set(0, 0);
+      moveTouchZone.classList.remove("active");
+      joystickKnob?.style.setProperty("transform", "translate3d(0, 0, 0)");
+    };
+    const endLook = (pointerId, activate = false) => {
+      if (pointerId !== lookPointerId) return;
+      lookPointerId = null;
+      lookTouchZone.classList.remove("active");
+      if (activate && lookTravel < 10) handlePrimaryAction();
+    };
+
     moveTouchZone.addEventListener("pointerdown", (event) => {
       if (!active || movePointerId !== null) return;
       event.preventDefault();
+      enableTouchControls();
       movePointerId = event.pointerId;
+      moveTouchZone.classList.add("active");
+      moveTouchZone.setPointerCapture?.(event.pointerId);
       updateJoystick(event);
     });
     window.addEventListener("pointermove", (event) => {
@@ -1055,18 +1099,19 @@ if (canvas && api) {
       updateJoystick(event);
     }, { passive: false });
     ["pointerup", "pointercancel"].forEach((type) => window.addEventListener(type, (event) => {
-      if (event.pointerId !== movePointerId) return;
-      movePointerId = null;
-      touchMove.set(0, 0);
-      joystickKnob?.style.setProperty("transform", "translate(0, 0)");
+      endMove(event.pointerId);
     }));
+    moveTouchZone.addEventListener("lostpointercapture", (event) => endMove(event.pointerId));
     lookTouchZone.addEventListener("pointerdown", (event) => {
       if (!active || lookPointerId !== null || scannerOpen || overlayOpen) return;
       event.preventDefault();
+      enableTouchControls();
       lookPointerId = event.pointerId;
       lookLastX = event.clientX;
       lookLastY = event.clientY;
       lookTravel = 0;
+      lookTouchZone.classList.add("active");
+      lookTouchZone.setPointerCapture?.(event.pointerId);
     });
     window.addEventListener("pointermove", (event) => {
       if (event.pointerId !== lookPointerId) return;
@@ -1080,11 +1125,67 @@ if (canvas && api) {
       else look(dx * 1.25, dy * 1.25);
     }, { passive: false });
     ["pointerup", "pointercancel"].forEach((type) => window.addEventListener(type, (event) => {
-      if (event.pointerId !== lookPointerId) return;
-      lookPointerId = null;
-      if (type === "pointerup" && lookTravel < 10) handlePrimaryAction();
+      endLook(event.pointerId, type === "pointerup");
     }));
+    lookTouchZone.addEventListener("lostpointercapture", (event) => endLook(event.pointerId));
+
+    // Pointer Events cover current Safari/Chrome. This fallback keeps the room
+    // playable in older WKWebView and in-app browsers used by mobile launchers.
+    if (!("PointerEvent" in window)) {
+      moveTouchZone.addEventListener("touchstart", (event) => {
+        if (!active || movePointerId !== null) return;
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        event.preventDefault();
+        movePointerId = touch.identifier;
+        moveTouchZone.classList.add("active");
+        updateJoystick(touch);
+      }, { passive: false });
+      lookTouchZone.addEventListener("touchstart", (event) => {
+        if (!active || lookPointerId !== null || scannerOpen || overlayOpen) return;
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        event.preventDefault();
+        lookPointerId = touch.identifier;
+        lookLastX = touch.clientX;
+        lookLastY = touch.clientY;
+        lookTravel = 0;
+        lookTouchZone.classList.add("active");
+      }, { passive: false });
+      window.addEventListener("touchmove", (event) => {
+        const moveTouch = findTouch(event.touches, movePointerId);
+        const lookTouch = findTouch(event.touches, lookPointerId);
+        if (!moveTouch && !lookTouch) return;
+        event.preventDefault();
+        if (moveTouch) updateJoystick(moveTouch);
+        if (lookTouch) updateTouchLook(lookTouch);
+      }, { passive: false });
+      ["touchend", "touchcancel"].forEach((type) => window.addEventListener(type, (event) => {
+        for (const touch of event.changedTouches) {
+          endMove(touch.identifier);
+          endLook(touch.identifier, type === "touchend");
+        }
+      }, { passive: false }));
+    }
     window.addEventListener("blur", resetTouchControls);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) resetTouchControls();
+    });
+  }
+
+  function findTouch(touchList, identifier) {
+    if (identifier === null) return null;
+    return Array.from(touchList).find((touch) => touch.identifier === identifier) || null;
+  }
+
+  function updateTouchLook(touch) {
+    const dx = touch.clientX - lookLastX;
+    const dy = touch.clientY - lookLastY;
+    lookLastX = touch.clientX;
+    lookLastY = touch.clientY;
+    lookTravel += Math.abs(dx) + Math.abs(dy);
+    if (inspectMode && held) rotateInspectedBook(dx, dy);
+    else look(dx * 1.25, dy * 1.25);
   }
 
   function updateJoystick(event) {
@@ -1105,14 +1206,16 @@ if (canvas && api) {
       Math.abs(normalizedX) < deadZone ? 0 : normalizedX,
       Math.abs(normalizedY) < deadZone ? 0 : normalizedY,
     );
-    joystickKnob?.style.setProperty("transform", `translate(${x}px, ${y}px)`);
+    joystickKnob?.style.setProperty("transform", `translate3d(${x}px, ${y}px, 0)`);
   }
 
   function resetTouchControls() {
     movePointerId = null;
     lookPointerId = null;
     touchMove.set(0, 0);
-    joystickKnob?.style.setProperty("transform", "translate(0, 0)");
+    moveTouchZone?.classList.remove("active");
+    lookTouchZone?.classList.remove("active");
+    joystickKnob?.style.setProperty("transform", "translate3d(0, 0, 0)");
   }
 
   async function requestMobilePresentation() {
