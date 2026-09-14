@@ -1557,8 +1557,12 @@ body.exploring .explore-mode.touch-enabled .mobile-controls[aria-hidden="false"]
   .rotating-phone-shelf { position: absolute; right: 3px; bottom: 13px; left: 3px; height: 3px; background: rgba(255,250,240,.65); box-shadow: 0 10px 0 rgba(255,250,240,.65); }
   .rotating-phone-books { position: absolute; right: 5px; bottom: 16px; width: 5px; height: 19px; background: #c69559; box-shadow: -7px 5px 0 #854959, -14px 1px 0 #ad7146, -21px 7px 0 #6c8790, 0 10px 0 #7f5362, -7px 10px 0 #b67b4b, -14px 10px 0 #688086, -21px 10px 0 #9d5d43; }
   .rotating-phone-home { position: absolute; bottom: 4px; left: 50%; width: 4px; height: 4px; border: 1px solid currentColor; border-radius: 50%; transform: translateX(-50%); }
-  .rotating-phone-arrow { position: absolute; right: 1px; bottom: 9px; width: 46px; height: 46px; border-right: 3px solid #c69559; border-bottom: 3px solid #c69559; border-radius: 0 0 34px; transform: rotate(-7deg); }
-  .rotating-phone-arrow::after { position: absolute; right: -7px; bottom: 29px; width: 12px; height: 12px; border-top: 3px solid #c69559; border-right: 3px solid #c69559; content: ""; transform: rotate(-9deg); }
+  .rotating-phone-arrow { position: absolute; width: 46px; height: 46px; color: #c69559; animation: rotate-arrow-pulse 2.8s ease-in-out infinite; }
+  .rotating-phone-arrow::after { position: absolute; width: 12px; height: 12px; content: ""; }
+  .rotating-phone-arrow-top { top: 0; left: 0; border-top: 3px solid currentColor; border-left: 3px solid currentColor; border-radius: 34px 0 0; transform: rotate(-7deg); }
+  .rotating-phone-arrow-top::after { bottom: -7px; left: -7px; border-bottom: 3px solid currentColor; border-left: 3px solid currentColor; transform: rotate(-9deg); }
+  .rotating-phone-arrow-bottom { right: 1px; bottom: 9px; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor; border-radius: 0 0 34px; transform: rotate(-7deg); }
+  .rotating-phone-arrow-bottom::after { right: -7px; bottom: 29px; border-top: 3px solid currentColor; border-right: 3px solid currentColor; transform: rotate(-9deg); }
 }
 
 @keyframes rotate-phone-horizontal {
@@ -1567,8 +1571,14 @@ body.exploring .explore-mode.touch-enabled .mobile-controls[aria-hidden="false"]
   100% { transform: rotate(0deg); }
 }
 
+@keyframes rotate-arrow-pulse {
+  0%, 100% { opacity: .45; }
+  18%, 72% { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rotating-phone-device { animation: none; transform: rotate(90deg); }
+  .rotating-phone-arrow { animation: none; opacity: 1; }
 }
 
 @media (max-width: 640px) {
