@@ -1234,6 +1234,19 @@ if (canvas && api) {
   }
 
   function openScanner() {
+    if (touchCapable && api.scanBarcode) {
+      scannerOpen = true;
+      resetTouchControls();
+      api.scanBarcode(
+        async (isbn) => {
+          scannerOpen = false;
+          scannerInput.value = isbn;
+          await handleScannerSubmit(new Event("submit", { cancelable: true }));
+        },
+        { container: exploreMode, returnFocus: mobileInteract, onClose: () => { scannerOpen = false; } },
+      );
+      return;
+    }
     scannerOpen = true;
     scannerModal.classList.add("open");
     scannerModal.setAttribute("aria-hidden", "false");
@@ -1247,7 +1260,7 @@ if (canvas && api) {
     scannerModal.classList.remove("open");
     scannerModal.setAttribute("aria-hidden", "true");
     scannerInput.value = "";
-    if (active) canvas.requestPointerLock?.();
+    if (active && !touchCapable) canvas.requestPointerLock?.();
   }
 
   async function animateUnlock(book) {
